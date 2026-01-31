@@ -1,4 +1,4 @@
--- // Rewrite By FRITE
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -969,13 +969,13 @@ function Utility:CreateMobileToggle()
         Name = 'ToggleButton',
         Parent = ToggleGui,
         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
+        AutoButtonColor = false,
         Position = UDim2.new(0, 10, 0.5, -25),
         Size = UDim2.new(0, 50, 0, 50),
         Image = 'rbxassetid://119789140771545',
         ImageColor3 = Color3.fromRGB(255, 255, 255),
-        ImageRectOffset = Vector2.new(644, 204),
-        ImageRectSize = Vector2.new(36, 36),
         ScaleType = Enum.ScaleType.Fit
     }, {
         Utility:Create('UICorner', {
@@ -1749,6 +1749,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             ScrollBarImageColor3 = Theme.ScrollBarColor,
             ScrollBarThickness = IsMobileDevice and 5 or 3
         }, {
+            Utility:Create('UIPadding', {
+                Name = TabName..'Padding',
+                PaddingLeft = UDim.new(0, IsMobileDevice and 8 or 6),
+                PaddingRight = UDim.new(0, IsMobileDevice and 8 or 6),
+                PaddingTop = UDim.new(0, IsMobileDevice and 8 or 6),
+                PaddingBottom = UDim.new(0, IsMobileDevice and 12 or 6)
+            }),
             Utility:Create('UIListLayout', {
                 Name = TabName..'ListLayout',
                 HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -1872,6 +1879,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         end) 
 
         local Sections = {}
+        local NextSectionOrder = 0
 
         function Sections:CreateSection(Name)
             local Name = Name or 'Section'
@@ -1883,6 +1891,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 BorderSizePixel = 0,
                 -- Use full available width to prevent overflow on mobile.
                 Size = UDim2.new(1, 0, 0, 30),
+                LayoutOrder = NextSectionOrder,
             }, {
                 Utility:Create('TextLabel', {
                     Name = Name..'SectionLabel',
@@ -1895,7 +1904,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     TextColor3 = Theme.SecondaryTextColor,
                     TextSize = 14,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    TextTruncate = Enum.TextTruncate.AtEnd
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    LayoutOrder = 0
                 }, {
                     Utility:Create('UIPadding', {
                         Name = Name..'SectionLabelPadding',
@@ -1906,13 +1916,20 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = 'SectionCorner',
                     CornerRadius = UDim.new(0, 5)
                 }),
+                Utility:Create('UIPadding', {
+                    Name = Name..'SectionPadding',
+                    PaddingLeft = UDim.new(0, IsMobileDevice and 4 or 2),
+                    PaddingRight = UDim.new(0, IsMobileDevice and 4 or 2),
+                    PaddingBottom = UDim.new(0, IsMobileDevice and 10 or 6)
+                }),
                 Utility:Create('UIListLayout', {
                     Name = Name..'ListLayout',
                     HorizontalAlignment = Enum.HorizontalAlignment.Center,
                     SortOrder = Enum.SortOrder.LayoutOrder,
-                    Padding = UDim.new(0, 6)
+                    Padding = UDim.new(0, IsMobileDevice and 10 or 6)
                 })
             })
+            NextSectionOrder = NextSectionOrder + 1
 
             local Section = Tab[Name..'Section']
 
@@ -1935,10 +1952,11 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             function UpdateSectionSize()
                 local ListLayout = Section[Name..'ListLayout']
                 local ContentSize = ListLayout.AbsoluteContentSize
+                local ExtraBottom = IsMobileDevice and 10 or 6
 
                 -- IMPORTANT: set size immediately so sections never overlap while tweening.
                 -- (Overlapping happens when the next Section is laid out before this one finishes tweening.)
-                Section.Size = UDim2.new(1, 0, 0, ContentSize.Y)
+                Section.Size = UDim2.new(1, 0, 0, ContentSize.Y + ExtraBottom)
             end
 
             -- Keep Section height synced with its content reliably.
@@ -1957,6 +1975,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             task.defer(UpdateSectionSize)
 
             local Elements = {}
+            local NextElementOrder = 1
+            local function AssignElementOrder(Instance)
+                if Instance and Instance:IsA('GuiObject') then
+                    Instance.LayoutOrder = NextElementOrder
+                    NextElementOrder = NextElementOrder + 1
+                end
+            end
             
             function Elements:CreateLabel(LabelText)
                 local LabelText = LabelText or 'Label'
@@ -2002,6 +2027,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     })
                 })
 
+                AssignElementOrder(Section[LabelText..'LabelHolder'])
                 UpdateSectionSize()
 
                 if not ImprovePerformance then
@@ -2100,6 +2126,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local ParagraphHolder = Section[Title..'ParagraphHolder']
                 local ParagraphContent = Section[Title..'ParagraphHolder'][Title..'ParagraphContent']
                 local ParagraphTitle = Section[Title..'ParagraphHolder'][Title..'ParagraphTitle']
+                AssignElementOrder(ParagraphHolder)
 
                 local function RecalcParagraphHeight()
                     local wrapWidth = ParagraphContent.AbsoluteSize.X
@@ -2175,7 +2202,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'ButtonHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 30)
+                    Size = UDim2.new(1, 0, 0, 30)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2192,7 +2219,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = Name..'Button',
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 410, 0, 30),
+                        Size = UDim2.new(1, 0, 0, 30),
                         Font = Enum.Font.Gotham,
                         TextColor3 = Theme.PrimaryTextColor,
                         TextSize = 16,
@@ -2211,7 +2238,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Name = 'ButtonImage',
                             BackgroundColor3 = Theme.PrimaryElementColor,
                             BackgroundTransparency = 1,
-                            Position = UDim2.new(0, 374, 0, 3),
+                            AnchorPoint = Vector2.new(1, 0),
+                            Position = UDim2.new(1, -6, 0, 3),
                             Size = UDim2.new(0, 25, 0, 25),
                             Image = 'rbxassetid://3926307971',
                             ImageColor3 = Theme.SecondaryTextColor,
@@ -2225,6 +2253,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                 local ButtonHolder = Section[Name..'ButtonHolder']
                 local Button = ButtonHolder[Name..'Button']
+                AssignElementOrder(ButtonHolder)
 
                 if not ImprovePerformance then
                     task.spawn(function()
@@ -2283,7 +2312,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'SliderHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 50)
+                    Size = UDim2.new(1, 0, 0, 50)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2300,7 +2329,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = 'SliderText',
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 300, 0, 30),
+                        Size = UDim2.new(1, -120, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
@@ -2320,7 +2349,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = Name..'SliderButton',
                         BackgroundColor3 = Theme.SecondaryElementColor,
                         Position = UDim2.new(0, 7, 0, 29),
-                        Size = UDim2.new(0, 395, 0, 10),
+                        Size = UDim2.new(1, -14, 0, 10),
                         Text = '',
                         BorderSizePixel = 0,
                         AutoButtonColor = false
@@ -2352,7 +2381,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = Name..'SliderNumberText',
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 299, 0, 0),
+                        AnchorPoint = Vector2.new(1, 0),
+                        Position = UDim2.new(1, -7, 0, 0),
                         Size = UDim2.new(0, 110, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = '0',
@@ -2371,13 +2401,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     })
                 })
 
-                local Mouse = Players.LocalPlayer:GetMouse()
                 local SliderHolder = Section[Name..'SliderHolder']
                 local SliderButton = SliderHolder[Name..'SliderButton']
                 local SliderNumber = SliderHolder[Name..'SliderNumberText']
                 local SliderTrail = SliderButton[Name..'SliderTrail']
 
                 UpdateSectionSize()
+                AssignElementOrder(SliderHolder)
 
                 Config[Name] = CurrentValue
 
@@ -2404,42 +2434,91 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
                 end
 
+                local function Clamp01(x)
+                    return math.clamp(x, 0, 1)
+                end
+
+                local function SetFromRatio(ratio, noCallback)
+                    local minV = tonumber(MinimumValue) or 0
+                    local maxV = tonumber(MaximumValue) or 0
+                    if maxV == minV then
+                        ratio = 0
+                    end
+                    ratio = Clamp01(ratio)
+
+                    local value = minV + ((maxV - minV) * ratio)
+                    value = math.floor(value + 0.5)
+                    CurrentValue = value
+                    SliderNumber.Text = tostring(value)
+                    Config[Name] = value
+                    Utility:Tween(SliderTrail, {Size = UDim2.new(ratio, 0, 0, 10)}, 0.1)
+                    if not noCallback then
+                        task.spawn(function()
+                            Callback(value)
+                        end)
+                    end
+                end
+
+                local function SetFromX(x, noCallback)
+                    local w = SliderButton.AbsoluteSize.X
+                    if w <= 0 then return end
+                    local rel = math.clamp(x - SliderButton.AbsolutePosition.X, 0, w)
+                    SetFromRatio(rel / w, noCallback)
+                end
+
                 if DefaultValue ~= nil then
-                    SliderNumber.Text = tostring(DefaultValue and math.floor((DefaultValue / MaximumValue) * (MaximumValue - MinimumValue) + MinimumValue))
-                    Utility:Tween(SliderTrail, {Size = UDim2.new((DefaultValue) / MaximumValue, 0, 0, 10)}, 0.25)  
+                    local minV = tonumber(MinimumValue) or 0
+                    local maxV = tonumber(MaximumValue) or 0
+                    local v = tonumber(DefaultValue) or minV
+                    v = math.clamp(v, math.min(minV, maxV), math.max(minV, maxV))
+                    local ratio = (maxV == minV) and 0 or ((v - minV) / (maxV - minV))
+                    SetFromRatio(ratio, true)
                     task.spawn(function()
                         Callback(CurrentValue)
+                    end)
+                else
+                    -- Ensure the UI is initialized even if DefaultValue is nil.
+                    task.defer(function()
+                        local minV = tonumber(MinimumValue) or 0
+                        SetFromRatio(0, true)
+                        SliderNumber.Text = tostring(minV)
                     end)
                 end
 
-                SliderButton.MouseButton1Down:Connect(function()
-                    CurrentValue = (((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue)
-                    task.spawn(function()
-                        Callback(CurrentValue)
-                    end)
-                    Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
-                    MoveConnection = Mouse.Move:Connect(function()
-                        SliderNumber.Text = CurrentValue
-                        CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
-                        task.spawn(function()
-                            Callback(CurrentValue)
+                local Dragging = false
+                local ActiveInput = nil
+                local InputChangedConn = nil
+                local InputEndedConn = nil
+
+                local function EndDrag()
+                    Dragging = false
+                    ActiveInput = nil
+                    if InputChangedConn then InputChangedConn:Disconnect() InputChangedConn = nil end
+                    if InputEndedConn then InputEndedConn:Disconnect() InputEndedConn = nil end
+                end
+
+                SliderButton.InputBegan:Connect(function(Input)
+                    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+                        Dragging = true
+                        ActiveInput = Input
+                        SetFromX(Input.Position.X, false)
+
+                        InputChangedConn = UserInputService.InputChanged:Connect(function(ChangedInput)
+                            if not Dragging then return end
+                            if ActiveInput and ChangedInput == ActiveInput then
+                                SetFromX(ChangedInput.Position.X, false)
+                            elseif ChangedInput.UserInputType == Enum.UserInputType.MouseMovement and ActiveInput.UserInputType == Enum.UserInputType.MouseButton1 then
+                                SetFromX(ChangedInput.Position.X, false)
+                            end
                         end)
-                        Config[Name] = CurrentValue
-                        Utility:Tween(SliderNumber, {TextColor3 = Color3.new(255, 255, 255)}, 0.25)
-                        Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
-                    end)
-                    ReleaseConnection = UserInputService.InputEnded:Connect(function(Input)
-                        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            CurrentValue = math.floor((((tonumber(MaximumValue) - tonumber(MinimumValue)) / 395) * SliderTrail.AbsoluteSize.X) + tonumber(MinimumValue))
-                            task.spawn(function()
-                                Callback(CurrentValue)
-                            end)
-                            Config[Name] = CurrentValue
-                            Utility:Tween(SliderTrail, {Size = UDim2.new(0, math.clamp(Mouse.X - SliderTrail.AbsolutePosition.X, 0, 395), 0, 10)}, 0.25)
-                            MoveConnection:Disconnect()
-                            ReleaseConnection:Disconnect()
-                        end
-                    end)
+
+                        InputEndedConn = UserInputService.InputEnded:Connect(function(EndedInput)
+                            if not Dragging then return end
+                            if EndedInput.UserInputType == Enum.UserInputType.MouseButton1 or EndedInput.UserInputType == Enum.UserInputType.Touch then
+                                EndDrag()
+                            end
+                        end)
+                    end
                 end)
 
                 SliderHolder.MouseEnter:Connect(function()
@@ -2453,9 +2532,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 end)
 
                 function SliderFunctions:Set(Value)
-                    SliderNumber.Text = tostring(Value and math.floor((Value / MaximumValue) * (MaximumValue - MinimumValue) + MinimumValue))
-                    Utility:Tween(SliderTrail, {Size = UDim2.new((Value) / MaximumValue, 0, 0, 10)}, 0.25)  
-                    Callback(Value)
+                    local minV = tonumber(MinimumValue) or 0
+                    local maxV = tonumber(MaximumValue) or 0
+                    local v = tonumber(Value) or minV
+                    v = math.clamp(v, math.min(minV, maxV), math.max(minV, maxV))
+                    local ratio = (maxV == minV) and 0 or ((v - minV) / (maxV - minV))
+                    SetFromRatio(ratio, false)
                 end
                 ConfigUpdates[Name] = SliderFunctions
                 return SliderFunctions
@@ -2472,7 +2554,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'TextboxHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 40)
+                    Size = UDim2.new(1, 0, 0, 40)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2490,7 +2572,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 5),
-                        Size = UDim2.new(0, 299, 0, 30),
+                        Size = UDim2.new(1, -90, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
@@ -2507,7 +2589,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.SecondaryElementColor,
                         BorderSizePixel = 0,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(0, 400, 0, 20),
+                        Position = UDim2.new(1, -10, 0, 20),
                         Size = UDim2.new(0, 50, 0, 25),
                         Font = Enum.Font.Gotham,
                         PlaceholderColor3 = Theme.SecondaryTextColor,
@@ -2534,6 +2616,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local Textbox = TextboxHolder[Name..'Textbox']
 
                 UpdateSectionSize()
+                AssignElementOrder(TextboxHolder)
 
                 if not ImprovePerformance then
                     task.spawn(function()
@@ -2558,13 +2641,17 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
                 end
 
-                local TextSize = TextService:GetTextSize(Placeholder, 14, Enum.Font.Gotham, Vector2.new(410, 40))
-
-                if TextSize.X < 50 then 
-                    Utility:Tween(Textbox, {Size = UDim2.new(0, 50, 0, 25)}, 0.25)
-                else
-                    Utility:Tween(Textbox, {Size = UDim2.new(0, TextSize.X + 10, 0, 25)}, 0.25)
+                local function RecalcTextboxWidth(text)
+                    local t = text or ''
+                    local textSize = TextService:GetTextSize(t, 14, Enum.Font.Gotham, Vector2.new(1000, 40))
+                    local desired = math.max(60, textSize.X + 14)
+                    local maxAllowed = math.max(60, math.floor((TextboxHolder.AbsoluteSize.X) * 0.55))
+                    Utility:Tween(Textbox, {Size = UDim2.new(0, math.clamp(desired, 60, maxAllowed), 0, 25)}, 0.15)
                 end
+
+                task.defer(function()
+                    RecalcTextboxWidth(Placeholder)
+                end)
 
                 Textbox.Focused:Connect(function()
                     Hovering = true
@@ -2590,14 +2677,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 Textbox.Changed:Connect(function(Property)
                     if Property == 'Text' then
                         Utility:Tween(Textbox, {TextColor3 = Theme.PrimaryTextColor}, 0.25)
-
-                        local TextSize = TextService:GetTextSize(Textbox.Text, 14, Enum.Font.Gotham, Vector2.new(410, 40))
-
-                        if TextSize.X < 50 then 
-                            Utility:Tween(Textbox, {Size = UDim2.new(0, 50, 0, 25)}, 0.25)
-                        else
-                            Utility:Tween(Textbox, {Size = UDim2.new(0, TextSize.X + 10, 0, 25)}, 0.25)
-                        end
+                        RecalcTextboxWidth(Textbox.Text)
                     end
                 end)
 
@@ -2624,7 +2704,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'KeybindHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 40)
+                    Size = UDim2.new(1, 0, 0, 40)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2643,7 +2723,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 5),
-                        Size = UDim2.new(0, 352, 0, 30),
+                        Size = UDim2.new(1, -70, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
@@ -2685,6 +2765,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 
                 local KeybindHolder = Section[Name..'KeybindHolder']
                 local Keybind = KeybindHolder[Name..'Keybind']
+                AssignElementOrder(KeybindHolder)
                 
                 UpdateSectionSize()
 
@@ -2712,12 +2793,17 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
                 end
 
-                TextSize = TextService:GetTextSize(Current, 14, Enum.Font.Gotham, Vector2.new(410, 40))
-                if TextSize.X < 25 then
-                    Utility:Tween(Keybind, {Size = UDim2.new(0, 25, 0, 25)}, 0.25)
-                else 
-                    Utility:Tween(Keybind, {Size = UDim2.new(0, TextSize.X + 10, 0, 25)}, 0.25)
+                local function RecalcKeybindWidth(text)
+                    local t = tostring(text or '')
+                    local ts = TextService:GetTextSize(t, 14, Enum.Font.Gotham, Vector2.new(1000, 40))
+                    local desired = math.max(30, ts.X + 14)
+                    local maxAllowed = math.max(30, math.floor((KeybindHolder.AbsoluteSize.X) * 0.45))
+                    Utility:Tween(Keybind, {Size = UDim2.new(0, math.clamp(desired, 30, maxAllowed), 0, 25)}, 0.15)
                 end
+
+                task.defer(function()
+                    RecalcKeybindWidth(Current)
+                end)
 
                 Keybind.MouseButton1Click:Connect(function()
                     Keybind.Text = '. . .'
@@ -2726,12 +2812,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                     if Input.KeyCode.Name ~= 'Unknown' then
                         Keybind.Text = Input.KeyCode.Name
-                        TextSize = TextService:GetTextSize(Input.KeyCode.Name, 14, Enum.Font.Gotham, Vector2.new(410, 40))
-                        if TextSize.X < 25 then
-                            Utility:Tween(Keybind, {Size = UDim2.new(0, 25, 0, 25)}, 0.25)
-                        else 
-                            Utility:Tween(Keybind, {Size = UDim2.new(0, TextSize.X + 10, 0, 25)}, 0.25)
-                        end
+                        RecalcKeybindWidth(Input.KeyCode.Name)
                         Current = Input.KeyCode.Name;
                         Utility:Tween(KeybindHolder, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                     end
@@ -3060,7 +3141,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 1, 0),
-                        Size = UDim2.new(0, 410, 0, 30),
+                        Size = UDim2.new(1, 0, 0, 30),
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3
@@ -3087,7 +3168,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 0, 0),
-                        Size = UDim2.new(0, 410, 0, 40),
+                        Size = UDim2.new(1, 0, 0, 40),
                         Font = Enum.Font.SourceSans,
                         Text = '',
                         TextColor3 = Color3.fromRGB(0, 0, 0),
@@ -3104,7 +3185,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Parent = Section,
                     Visible = false,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 410, 0, 0)
+                    Size = UDim2.new(1, 0, 0, 0)
                 })
 
                 local DropdownHolder = Section[Name..'DropdownHolder']
@@ -3116,6 +3197,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local DropdownFiller = Section[Name..'DropdownFiller']
 
                 UpdateSectionSize()
+                AssignElementOrder(DropdownHolder)
 
                 Config[Name] = Default
 
@@ -3151,8 +3233,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if not Debounce then
                         if Opened then
                             Opened = false
-                            Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                            Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                            Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                            Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                             if #List <= 5 then
                                 Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
@@ -3172,15 +3254,15 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             DropdownFiller.Visible = true
                             DropList.Visible = true
                             if #List <= 5 then
-                                Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, DropListLayout.AbsoluteContentSize.Y - 6)}, 0.25)
-                                Utility:Tween(DropList, {CanvasSize = UDim2.new(0, 400, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
+                                Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
+                                Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, DropListLayout.AbsoluteContentSize.Y - 6)}, 0.25)
+                                Utility:Tween(DropList, {CanvasSize = UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
                                 Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
                                 Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
                             else
-                                Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, 150)}, 0.25)
-                                Utility:Tween(DropList, {CanvasSize = UDim2.new(0, 400, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, 144)}, 0.25)
+                                Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 150)}, 0.25)
+                                Utility:Tween(DropList, {CanvasSize = UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
+                                Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 144)}, 0.25)
                                 Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, 150)}, 0.25)
                                 Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, 150)}, 0.25)
                             end
@@ -3198,7 +3280,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Parent = DropList,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Size = UDim2.new(0, 410, 0, 30),
+                        Size = UDim2.new(1, 0, 0, 30),
                         Font = Enum.Font.SourceSans,
                         TextColor3 = Theme.SecondaryTextColor,
                         TextSize = 16,
@@ -3263,8 +3345,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 150)}, 0.25)
                             Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 150)}, 0.25)
                         end
-                        Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                        Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.wait(0.25)
                         DropList.Visible = false
@@ -3301,8 +3383,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     local NewList = NewList or {}
                     if Opened then
                         Opened = false
-                        Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                        Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         if #List <= 5 then
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
@@ -3324,8 +3406,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                     if Opened then
                         Opened = false
-                        Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                        Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         if #List <= 5 then
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y + 150)}, 0.25)
@@ -3347,7 +3429,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Parent = DropList,
                             BackgroundColor3 = Theme.PrimaryElementColor,
                             BorderSizePixel = 0,
-                            Size = UDim2.new(0, 410, 0, 30),
+                            Size = UDim2.new(1, 0, 0, 30),
                             Font = Enum.Font.SourceSans,
                             TextColor3 = Theme.SecondaryTextColor,
                             TextSize = 16,
@@ -3420,8 +3502,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                                 Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 150)}, 0.25)
                                 Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 150)}, 0.25)
                             end
-                            Utility:Tween(DropdownFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                            Utility:Tween(DropList, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                            Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                            Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                             task.wait(0.25)
                             DropList.Visible = false
@@ -3449,7 +3531,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'ColorpickerHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 40)
+                    Size = UDim2.new(1, 0, 0, 40)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -3467,7 +3549,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 5),
-                        Size = UDim2.new(0, 200, 0, 30),
+                        Size = UDim2.new(1, -50, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
@@ -3483,7 +3565,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = Name..'ColorpickerButton',
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 410, 0, 40),
+                        Size = UDim2.new(1, 0, 0, 40),
                         ZIndex = 2,
                         Font = Enum.Font.Gotham,
                         Text = '',
@@ -3500,7 +3582,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 0, 40),
-                        Size = UDim2.new(0, 410, 0, 114),
+                        Size = UDim2.new(1, 0, 0, 114),
                         Visible = false
                     }, {
                         Utility:Create('UICorner', {
@@ -3517,8 +3599,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Utility:Create('ImageButton', {
                             Name = Name..'RGBPicker',
                             BackgroundColor3 = Theme.PrimaryElementColor,
-                            Position = UDim2.new(0, 38, 0, 7),
-                            Size = UDim2.new(0, 300, 0, 100),
+                            Position = UDim2.new(0, 8, 0, 7),
+                            Size = UDim2.new(1, -49, 0, 100),
                             Image = 'rbxassetid://6523286724'
                         }, {
                             Utility:Create('UICorner', {
@@ -3547,7 +3629,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Utility:Create('ImageButton', {
                             Name = Name..'DarknessPicker',
                             BackgroundColor3 = Theme.PrimaryElementColor,
-                            Position = UDim2.new(0, 346, 0, 7),
+                            AnchorPoint = Vector2.new(1, 0),
+                            Position = UDim2.new(1, -8, 0, 7),
                             Size = UDim2.new(0, 25, 0, 100),
                             Image = 'rbxassetid://6523291212'
                         }, {
@@ -3578,7 +3661,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     }),
                     Utility:Create('Frame', {
                         Name = Name..'ColorpickerPreview',
-                        Position = UDim2.new(0, 377, 0, 8),
+                        AnchorPoint = Vector2.new(1, 0),
+                        Position = UDim2.new(1, -8, 0, 8),
                         Size = UDim2.new(0, 25, 0, 25)
                     }, {
                         Utility:Create('UICorner', {
@@ -3592,7 +3676,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Parent = Section,
                     Visible = false,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 410, 0, 0)
+                    Size = UDim2.new(1, 0, 0, 0)
                 })
 
                 local ColorpickerHolder = Section[Name..'ColorpickerHolder']
@@ -3606,6 +3690,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local ColorpickerFiller = Section[Name..'ColorpickerFiller']
                 
                 UpdateSectionSize()
+                AssignElementOrder(ColorpickerHolder)
 
                 if not Args[1] == true then
                     Config[Name] = Utility:SplitColor(DefaultColor)
@@ -3649,10 +3734,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if not Debounce then
                         if Opened then
                             Opened = false
-                            Utility:Tween(ColorpickerFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                            Utility:Tween(RGBPicker, {Size = UDim2.new(0, 300, 0, 0)}, 0.25)
+                            Utility:Tween(ColorpickerFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                            Utility:Tween(RGBPicker, {Size = UDim2.new(1, -49, 0, 0)}, 0.25)
                             Utility:Tween(DarknessPicker, {Size = UDim2.new(0, 25, 0, 0)}, 0.25)
-                            Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                            Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 114)}, 0.25)
                             Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 114)}, 0.25)
                             UpdateSectionSize()
@@ -3667,10 +3752,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ColorpickerDropdown.Visible = true
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, 114)}, 0.25)
                             Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, 114)}, 0.25)
-                            Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(0, 410, 0, 114)}, 0.25)
-                            Utility:Tween(RGBPicker, {Size = UDim2.new(0, 300, 0, 100)}, 0.25)
+                            Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(1, 0, 0, 114)}, 0.25)
+                            Utility:Tween(RGBPicker, {Size = UDim2.new(1, -49, 0, 100)}, 0.25)
                             Utility:Tween(DarknessPicker, {Size = UDim2.new(0, 25, 0, 100)}, 0.25)
-                            Utility:Tween(ColorpickerFiller, {Size = UDim2.new(0, 410, 0, 110)}, 0.25)
+                            Utility:Tween(ColorpickerFiller, {Size = UDim2.new(1, 0, 0, 110)}, 0.25)
                             UpdateSectionSize()
                             Debounce = true
                             task.wait(DebounceAmount)
@@ -3804,7 +3889,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'ImageHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 40)
+                    Size = UDim2.new(1, 0, 0, 40)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -3822,7 +3907,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 5),
-                        Size = UDim2.new(0, 200, 0, 30),
+                        Size = UDim2.new(1, -50, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
@@ -3839,7 +3924,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 377, 0, 8),
+                        AnchorPoint = Vector2.new(1, 0),
+                        Position = UDim2.new(1, -8, 0, 8),
                         Size = UDim2.new(0, 25, 0, 25),
                         Image = 'rbxassetid://3926305904',
                         ImageColor3 = Theme.SecondaryTextColor,
@@ -3851,7 +3937,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 1, 0),
-                        Size = UDim2.new(0, 410, 0, 30),
+                        Size = UDim2.new(1, 0, 0, 30),
                         ClipsDescendants = true,
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
@@ -3886,7 +3972,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 0, 0),
-                        Size = UDim2.new(0, 410, 0, 40),
+                        Size = UDim2.new(1, 0, 0, 40),
                         Font = Enum.Font.SourceSans,
                         Text = '',
                         TextColor3 = Color3.fromRGB(0, 0, 0),
@@ -3903,7 +3989,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Parent = Section,
                     Visible = false,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(0, 410, 0, 0)
+                    Size = UDim2.new(1, 0, 0, 0)
                 })
 
 
@@ -3916,6 +4002,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local ImageDropdownListLayout = ImageDropdown[Name..'ImageDropdownListLayout']
 
                 UpdateSectionSize()
+                AssignElementOrder(ImageHolder)
 
                 if not ImprovePerformance then
                     task.spawn(function()
@@ -3955,12 +4042,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if not Debounce then
                         if Opened then
                             Opened = false
-                            Utility:Tween(ImageFiller, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
-                            Utility:Tween(ImageDropdown, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                            Utility:Tween(ImageFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                            Utility:Tween(ImageDropdown, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(ImageIcon, {ImageColor3 = Theme.SecondaryTextColor}, 0.25)
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 400, 0, ImageSize.Y.Offset + 10)}, 0.25)
                             Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 400, 0, ImageSize.Y.Offset + 10)}, 0.25)
-                            Utility:Tween(Image, {Size = UDim2.new(0, 410, 0, 0)}, 0.25)
+                            Utility:Tween(Image, {Size = UDim2.new(0, 0, 0, 0)}, 0.25)
                             UpdateImageCanvas()
                             UpdateSectionSize()
                             Debounce = true
@@ -3972,8 +4059,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Opened = true
                             ImageFiller.Visible = true
                             ImageDropdown.Visible = true
-                            Utility:Tween(ImageDropdown, {Size = UDim2.new(0, 410, 0, ImageSize.Y.Offset + 10)}, 0.25)
-                            Utility:Tween(ImageFiller, {Size = UDim2.new(0, 410, 0, ImageSize.Y.Offset + 10 - 6)}, 0.25)
+                            Utility:Tween(ImageDropdown, {Size = UDim2.new(1, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
+                            Utility:Tween(ImageFiller, {Size = UDim2.new(1, 0, 0, ImageSize.Y.Offset + 10 - 6)}, 0.25)
                             Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
                             Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
                             Utility:Tween(Image, {Size = ImageSize}, 0.25)
@@ -4026,7 +4113,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                 function ImageFunctions:UpdateImage(NewURL, NewSize)
                     ImageSize = NewSize
-                    URL = NewUrl
+                    URL = NewURL
                     Image.Image = NewURL
                     UpdateImageCanvas()
                 end
