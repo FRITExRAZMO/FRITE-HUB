@@ -225,7 +225,8 @@ local function IsMobile()
 end
 
 local function GetUIScale()
-    return IsMobile() and 0.7 or 1
+    -- Légèrement plus grand sur mobile pour une meilleure lisibilité (GUI de base déjà agrandi)
+    return IsMobile() and 0.8 or 1
 end
 
 -- // Utility Functions
@@ -1272,6 +1273,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
     local IsMobileDevice = IsMobile()
     local UIScaleValue = GetUIScale()
+    -- Taille de base du GUI : plus grande sur mobile pour éviter que tout soit trop serré
+    local MainWidth = IsMobileDevice and 700 or 600
+    local MainHeight = IsMobileDevice and 440 or 375
     local StartPos = IsMobileDevice and UDim2.new(0.5, 0, 0.5, 0) or UDim2.new(0, 595, 0, 150)
 
     local Container = Utility:Create('ScreenGui', {
@@ -1344,9 +1348,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
     end
 
     Utility:Tween(Main, {BackgroundTransparency = 0}, 0.25)
-    Utility:Tween(Main, {Size = UDim2.new(0, 600, 0, 0)}, 0.25)
+    Utility:Tween(Main, {Size = UDim2.new(0, MainWidth, 0, 0)}, 0.25)
     task.wait(0.5)
-    Utility:Tween(Main, {Size = UDim2.new(0, 600, 0, 375)}, 0.25)
+    Utility:Tween(Main, {Size = UDim2.new(0, MainWidth, 0, MainHeight)}, 0.25)
     task.wait(0.5)
     Utility:Tween(Main['IntroText'], {TextTransparency = 0}, 0.25)
     task.wait(0.5)
@@ -1366,7 +1370,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         Position = UDim2.new(0.5, 0, 0.5, 0),
         Parent = Main,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 600, 0, 375),
+        Size = UDim2.new(0, MainWidth, 0, MainHeight),
         ZIndex = 100,
         Visible = true,
         BackgroundTransparency = 1,
@@ -1383,7 +1387,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         Position = UDim2.new(0, 170, 0, 0),
         Parent = Main,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 429, 0, 9),
+        Size = UDim2.new(0, MainWidth - 171, 0, 9),
         ZIndex = 1,
         BackgroundColor3 = Theme.BackgroundColor
     }, {
@@ -1395,9 +1399,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
     Utility:Create('Frame', {
         Name = 'Filler2',
         Parent = Main,
-        Position = UDim2.new(0, 170, 0, 364),
+        Position = UDim2.new(0, 170, 0, MainHeight - 11),
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 429, 0, 11),
+        Size = UDim2.new(0, MainWidth - 171, 0, 11),
         ZIndex = 1,
         BackgroundColor3 = Theme.BackgroundColor
     }, {
@@ -1411,7 +1415,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         BackgroundColor3 = Theme.SidebarColor,
         Parent = Main,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 170, 0, 375)
+        Size = UDim2.new(0, 170, 0, MainHeight)
     }, {
         Utility:Create('UICorner', {
             CornerRadius = UDim.new(0, 5),
@@ -1432,7 +1436,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         }),
         Utility:Create('Frame', {
             Name = 'Filler3',
-            Position = UDim2.new(0, 0, 0, 368),
+            Position = UDim2.new(0, 0, 0, MainHeight - 7),
             BorderSizePixel = 0,
             Size = UDim2.new(0, 170, 0, 7),
             ZIndex = 1,
@@ -1486,7 +1490,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             BackgroundColor3 = Theme.UIStrokeColor,
             BorderSizePixel = 0,
             Position = UDim2.new(0, 170, 0, 0),
-            Size = UDim2.new(0, 1, 0, 375)
+            Size = UDim2.new(0, 1, 0, MainHeight)
         }),
         Utility:Create('Frame', {
             Name = 'SidebarLine2',
@@ -1501,7 +1505,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             BackgroundColor3 = Theme.SidebarColor,
             BorderSizePixel = 0,
             Position = UDim2.new(0, 0, 0, 55),
-            Size = UDim2.new(0, 170, 0, 313),
+            Size = UDim2.new(0, 170, 0, MainHeight - 62),
             ScrollBarThickness = IsMobileDevice and 5 or 0
         }, {
             Utility:Create('UIListLayout', {
@@ -1518,7 +1522,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         Parent = Main,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 171, 0, 9),
-        Size = UDim2.new(0, 429, 0, 355)
+        Size = UDim2.new(0, MainWidth - 171, 0, MainHeight - 20)
     }, {
         Utility:Create('Folder', {
             Name = 'TabsFolder'
@@ -3355,7 +3359,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Opened = not Opened
 
                     if Opened then
+                        -- ZIndex élevé pour que le dropdown passe au-dessus des sections/toggles (surtout mobile)
+                        DropdownHolder.ZIndex = 10
                         DropdownFiller.Visible = true
+                        DropdownFiller.ZIndex = 9
                         DropList.Visible = true
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
 
@@ -3364,6 +3371,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ApplyDropdownSizing(true)
                         end)
                     else
+                        DropdownHolder.ZIndex = 1
+                        DropdownFiller.ZIndex = 1
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
@@ -3442,6 +3451,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Callback(Item)
                         Config[Name] = Item
                         Opened = false
+                        DropdownHolder.ZIndex = 1
+                        DropdownFiller.ZIndex = 1
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
@@ -3483,6 +3494,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     local NewList = NewList or {}
                     if Opened then
                         Opened = false
+                        DropdownHolder.ZIndex = 1
+                        DropdownFiller.ZIndex = 1
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
@@ -3803,6 +3816,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if not Debounce then
                         if Opened then
                             Opened = false
+                            ColorpickerHolder.ZIndex = 1
+                            ColorpickerFiller.ZIndex = 1
                             Utility:Tween(ColorpickerFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(RGBPicker, {Size = UDim2.new(1, -49, 0, 0)}, 0.25)
                             Utility:Tween(DarknessPicker, {Size = UDim2.new(0, 25, 0, 0)}, 0.25)
@@ -3815,6 +3830,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ColorpickerFiller.Visible = false
                         else
                             Opened = true
+                            ColorpickerHolder.ZIndex = 10
+                            ColorpickerFiller.ZIndex = 9
                             ColorpickerFiller.Visible = true
                             ColorpickerDropdown.Visible = true
                             Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(1, 0, 0, 114)}, 0.25)
@@ -4107,6 +4124,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if not Debounce then
                         if Opened then
                             Opened = false
+                            ImageHolder.ZIndex = 1
+                            ImageFiller.ZIndex = 1
                             Utility:Tween(ImageFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(ImageDropdown, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(ImageIcon, {ImageColor3 = Theme.SecondaryTextColor}, 0.25)
@@ -4120,6 +4139,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ImageFiller.Visible = false
                         else
                             Opened = true
+                            ImageHolder.ZIndex = 10
+                            ImageFiller.ZIndex = 9
                             ImageFiller.Visible = true
                             ImageDropdown.Visible = true
                             Utility:Tween(ImageDropdown, {Size = UDim2.new(1, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
