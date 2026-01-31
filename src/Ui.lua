@@ -219,6 +219,14 @@ local Themes = {
     }
 }
 
+local function IsMobile()
+    return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
+local function GetUIScale()
+    return IsMobile() and 0.7 or 1
+end
+
 -- // Utility Functions
 do
     function Utility:Tween(Instance, Properties, Duration, ...)
@@ -280,7 +288,7 @@ do
         end
         
         Frame.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                 Dragging = true
                 DragStart = Input.Position
                 StartPosition = Frame.Position
@@ -294,7 +302,7 @@ do
         end)
         
         Frame.InputChanged:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseMovement then
+            if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
                 DraggingInput = Input
             end
         end)
@@ -946,6 +954,52 @@ do
     end)
 end
 
+function Utility:CreateMobileToggle()
+    if not IsMobile() then return end
+    
+    local ToggleGui = Utility:Create('ScreenGui', {
+        Name = 'MobileToggleButton',
+        Parent = CoreGui,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    })
+    
+    local ToggleButton = Utility:Create('ImageButton', {
+        Name = 'ToggleButton',
+        Parent = ToggleGui,
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 10, 0.5, -25),
+        Size = UDim2.new(0, 50, 0, 50),
+        Image = 'rbxassetid://119789140771545',
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        ImageRectOffset = Vector2.new(644, 204),
+        ImageRectSize = Vector2.new(36, 36),
+        ScaleType = Enum.ScaleType.Fit
+    }, {
+        Utility:Create('UICorner', {
+            CornerRadius = UDim.new(0, 10)
+        }),
+        Utility:Create('UIStroke', {
+            Color = Color3.fromRGB(60, 60, 60),
+            Thickness = 2
+        })
+    })
+        -- Rendre draggable
+    Utility:EnableDragging(ToggleButton)
+    
+    -- Fonction toggle
+    ToggleButton.MouseButton1Click:Connect(function()
+        Utility:ToggleUI()
+        if CoreGui:FindFirstChild(UIName) then
+            local isEnabled = CoreGui:FindFirstChild(UIName).Enabled
+            ToggleButton.ImageColor3 = isEnabled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+        end
+    end)
+    
+    return ToggleButton
+end
+
 -- // Library Functions
 function Library:DestroyUI()
     Utility:DestroyUI()
@@ -1148,17 +1202,24 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
     Config['Theme_4z3s4QrUhfqt703FmiAe'] = HttpService:JSONEncode(NewTable)
 
+    local IsMobileDevice = IsMobile()
+    local UIScaleValue = GetUIScale()
+    local StartPos = IsMobileDevice and UDim2.new(0.5, 0, 0.5, 0) or UDim2.new(0, 595, 0, 150)
+
     local Container = Utility:Create('ScreenGui', {
         Name = UIName,
-        Parent = CoreGui
+        Parent = CoreGui,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     }, {
         Utility:Create('Frame', {
             Name = 'Main',
             BackgroundColor3 = Theme.BackgroundColor,
             BorderSizePixel = 0,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 595, 0, 150),
-            Size = UDim2.new(0, 0, 0, 0)
+            Position = StartPos,
+            Size = UDim2.new(0, 0, 0, 0),
+            AnchorPoint = IsMobileDevice and Vector2.new(0.5, 0.5) or Vector2.new(0, 0)
         }, {
             Utility:Create('UICorner', {
                 CornerRadius = UDim.new(0, 5),
@@ -1197,8 +1258,22 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
     })
 
     local Main = Container.Main
-    
-    Utility:EnableDragging(Container.Main)
+
+    Utility:Create('UIScale', {
+        Name = 'UIScale',
+        Parent = Main,
+        Scale = UIScaleValue
+    })
+
+    -- Mobile toggle button (only on mobile)
+    if IsMobileDevice then
+        Utility:CreateMobileToggle()
+    end
+
+    -- Disable dragging on mobile to avoid conflicts with touch
+    if not IsMobileDevice then
+        Utility:EnableDragging(Container.Main)
+    end
 
     Utility:Tween(Main, {BackgroundTransparency = 0}, 0.25)
     Utility:Tween(Main, {Size = UDim2.new(0, 600, 0, 0)}, 0.25)
@@ -1359,7 +1434,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             BorderSizePixel = 0,
             Position = UDim2.new(0, 0, 0, 55),
             Size = UDim2.new(0, 170, 0, 313),
-            ScrollBarThickness = 0
+            ScrollBarThickness = IsMobileDevice and 5 or 0
         }, {
             Utility:Create('UIListLayout', {
                 Name = 'TabButtonHolderListLayout',
@@ -1670,7 +1745,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             Size = UDim2.new(0, 428, 0, 365),
             BorderSizePixel = 0,
             ScrollBarImageColor3 = Theme.ScrollBarColor,
-            ScrollBarThickness = 3
+            ScrollBarThickness = IsMobileDevice and 5 or 3
         }, {
             Utility:Create('UIListLayout', {
                 Name = TabName..'ListLayout',
