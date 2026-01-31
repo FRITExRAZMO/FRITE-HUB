@@ -315,6 +315,73 @@ do
         end)
     end
 
+    -- Reliable "tap" handler for mobile (prevents accidental activation while scrolling).
+    -- On desktop, it uses MouseButton1Click; on mobile it triggers only if the finger
+    -- didn't move more than a small threshold before releasing.
+    function Utility:BindClick(GuiObject, Callback)
+        local Callback = Callback or function() end
+
+        -- Desktop click (avoid double-calls on touch devices).
+        if GuiObject:IsA('GuiButton') and not UserInputService.TouchEnabled then
+            GuiObject.MouseButton1Click:Connect(function()
+                task.spawn(function()
+                    pcall(Callback)
+                end)
+            end)
+        end
+
+        -- Touch tap (movement threshold).
+        GuiObject.InputBegan:Connect(function(Input)
+            if Input.UserInputType ~= Enum.UserInputType.Touch then
+                return
+            end
+
+            local startPos = Input.Position
+            local startTime = os.clock()
+            local moved = false
+            local moveThreshold = 14 -- pixels
+            local timeThreshold = 0.45 -- seconds
+
+            local changedConn, endedConn
+            changedConn = UserInputService.InputChanged:Connect(function(Changed)
+                if Changed ~= Input then
+                    return
+                end
+
+                local delta = Changed.Position - startPos
+                if (math.abs(delta.X) > moveThreshold) or (math.abs(delta.Y) > moveThreshold) then
+                    moved = true
+                end
+            end)
+
+            endedConn = UserInputService.InputEnded:Connect(function(Ended)
+                if Ended ~= Input then
+                    return
+                end
+
+                if changedConn then
+                    changedConn:Disconnect()
+                end
+                if endedConn then
+                    endedConn:Disconnect()
+                end
+
+                local elapsed = os.clock() - startTime
+                local delta = Ended.Position - startPos
+                local isTap = (not moved)
+                    and (elapsed <= timeThreshold)
+                    and (math.abs(delta.X) <= moveThreshold)
+                    and (math.abs(delta.Y) <= moveThreshold)
+
+                if isTap then
+                    task.spawn(function()
+                        pcall(Callback)
+                    end)
+                end
+            end)
+        end)
+    end
+
     function Utility:Create(_Instance, Properties, Children)
         local Object = Instance.new(_Instance)
         local Properties = Properties or {}
@@ -1859,7 +1926,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             TabButton.Parent[TabName..'ButtonImage'].ImageColor3 = Theme.SecondaryTextColor
         end
 
-        TabButton.MouseButton1Down:Connect(function()
+        -- Use tap-safe handler on mobile to avoid switching tabs while scrolling.
+        Utility:BindClick(TabButton, function()
             for _, ITab in next, TabFolder:GetChildren() do
                 ITab.Visible = false
             end
@@ -1876,7 +1944,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
             Utility:Tween(TabButton.Parent[TabName..'ButtonText'], {TextColor3 = Theme.PrimaryTextColor}, 0.25)
             Utility:Tween(TabButton.Parent[TabName..'ButtonImage'], {ImageColor3 = Theme.PrimaryTextColor}, 0.25)
-        end) 
+        end)
 
         local Sections = {}
         local NextSectionOrder = 0
@@ -3005,23 +3073,28 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Utility:Tween(Circle, {Position = UDim2.new(0, 30, 0, 5)}, 0.25)
                 end
 
-                ToggleButton.MouseButton1Down:Connect(function()
-                    if not Debounce then
-                        Toggled = not Toggled
-                        task.spawn(function()                    
-                            pcall(Callback, Toggled)
-                        end)
-                        Debounce = true
-                        if Toggled then
-                            Utility:Tween(Toggle, {BackgroundColor3 = ToggleColor}, 0.25)
-                            Utility:Tween(Circle, {Position = UDim2.new(0, 30, 0, 5)}, 0.25)
-                        else
-                            Utility:Tween(Toggle, {BackgroundColor3 = Theme.SecondaryElementColor}, 0.25)
-                            Utility:Tween(Circle, {Position = UDim2.new(0, 5, 0, 5)}, 0.25)
-                        end
-                        task.wait(DebounceAmount)
-                        Debounce = false
+                Utility:BindClick(ToggleButton, function()
+                    if Debounce then
+                        return
                     end
+
+                    Toggled = not Toggled
+                    task.spawn(function()
+                        pcall(Callback, Toggled)
+                    end)
+
+                    Debounce = true
+                    if Toggled then
+                        Utility:Tween(Toggle, {BackgroundColor3 = ToggleColor}, 0.25)
+                        Utility:Tween(Circle, {Position = UDim2.new(0, 30, 0, 5)}, 0.25)
+                    else
+                        Utility:Tween(Toggle, {BackgroundColor3 = Theme.SecondaryElementColor}, 0.25)
+                        Utility:Tween(Circle, {Position = UDim2.new(0, 5, 0, 5)}, 0.25)
+                    end
+
+                    task.delay(DebounceAmount, function()
+                        Debounce = false
+                    end)
                 end)
 
                 ToggleHolder.MouseEnter:Connect(function()
@@ -3201,6 +3274,51 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                 Config[Name] = Default
 
+                local function GetDropdownOpenHeight()
+                    -- Wait one frame if layout hasn't updated yet (common on mobile when toggling Visible).
+                    local contentY = DropListLayout.AbsoluteContentSize.Y
+                    if contentY <= 0 then
+                        return 0, 0
+                    end
+
+                    local maxHeight
+                    if IsMobileDevice then
+                        -- Keep dropdown usable on small screens (don't cover the whole tab).
+                        maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.55, 120, 220))
+                    else
+                        maxHeight = 150
+                    end
+
+                    local openHeight = math.min(contentY, maxHeight)
+                    return openHeight, contentY
+                end
+
+                local function ApplyDropdownSizing(UseTween)
+                    local openHeight, contentY = GetDropdownOpenHeight()
+                    if contentY > 0 then
+                        DropList.CanvasSize = UDim2.new(0, 0, 0, contentY)
+                    end
+
+                    if not Opened then
+                        return
+                    end
+
+                    local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
+                    if UseTween then
+                        Utility:Tween(DropList, sizeProps, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, openHeight)}, 0.25)
+                    else
+                        DropList.Size = sizeProps.Size
+                        DropdownFiller.Size = UDim2.new(1, 0, 0, openHeight)
+                    end
+                end
+
+                DropListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+                    task.defer(function()
+                        ApplyDropdownSizing(false)
+                    end)
+                end)
+
                 if not ImprovePerformance then
                     task.spawn(function()
                         while task.wait() do
@@ -3228,50 +3346,36 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
                 end
 
-                DropdownButton.MouseButton1Click:Connect(function()
-                    task.wait(0.25)
-                    if not Debounce then
-                        if Opened then
-                            Opened = false
-                            Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                            Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                            Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
-                            if #List <= 5 then
-                                Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                            else
-                                Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 150)}, 0.25)
-                                Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 150)}, 0.25)
-                            end
-                            Debounce = true
-                            task.wait(DebounceAmount)
-                            Debounce = false
+                Utility:BindClick(DropdownButton, function()
+                    if Debounce then
+                        return
+                    end
+
+                    Debounce = true
+                    Opened = not Opened
+
+                    if Opened then
+                        DropdownFiller.Visible = true
+                        DropList.Visible = true
+                        Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
+
+                        -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
+                        task.defer(function()
+                            ApplyDropdownSizing(true)
+                        end)
+                    else
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
+                        task.delay(0.25, function()
                             DropList.Visible = false
                             DropdownFiller.Visible = false
-                            
-                        else
-                            Opened = true
-                            DropdownFiller.Visible = true
-                            DropList.Visible = true
-                            if #List <= 5 then
-                                Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, DropListLayout.AbsoluteContentSize.Y - 6)}, 0.25)
-                                Utility:Tween(DropList, {CanvasSize = UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                            else
-                                Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 150)}, 0.25)
-                                Utility:Tween(DropList, {CanvasSize = UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 144)}, 0.25)
-                                Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, 150)}, 0.25)
-                                Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, 150)}, 0.25)
-                            end
-                            Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
-                            Debounce = true
-                            task.wait(DebounceAmount)
-                            Debounce = false
-                        end
+                        end)
                     end
+
+                    task.delay(DebounceAmount, function()
+                        Debounce = false
+                    end)
                 end)
 
                 for _, Item in next, List do
@@ -3327,7 +3431,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Hovering = false
                     end)
 
-                    OptionButton.MouseButton1Click:Connect(function()
+                    Utility:BindClick(OptionButton, function()
                         for _, Button in next, DropList:GetChildren() do
                             if Button:IsA('TextButton') then
                                 Utility:Tween(Button, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
@@ -3338,13 +3442,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Callback(Item)
                         Config[Name] = Item
                         Opened = false
-                        if #List <= 5 then
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                        else
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 150)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 150)}, 0.25)
-                        end
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
@@ -3373,8 +3470,11 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                 function DropdownFunctions:Set(Value)
                     SelectedItem = tostring(Value)
-                    DropdownSelectedText = tostring(Value)
-                    Callback(Value)
+                    DropdownSelectedText.Text = SelectedItem
+                    Config[Name] = Value
+                    task.spawn(function()
+                        pcall(Callback, Value)
+                    end)
                 end
                 ConfigUpdates[Name] = DropdownFunctions
 
@@ -3386,15 +3486,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
-                        if #List <= 5 then
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                        else
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 150)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 150)}, 0.25)
-                        end
-                        DropList.Visible = false
-                        DropdownFiller.Visible = false
+                        task.delay(0.25, function()
+                            DropList.Visible = false
+                            DropdownFiller.Visible = false
+                        end)
                     end
                     task.wait(0.25)
                     for _, Item in next, DropList:GetChildren() do
@@ -3403,25 +3498,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         end
                     end
                     List = NewList
-
-                    if Opened then
-                        Opened = false
-                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                        Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
-                        if #List <= 5 then
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y + 150)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y + 150)}, 0.25)
-                        else
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 90)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 90)}, 0.25)
-                        end
-                        Debounce = true
-                        task.wait(DebounceAmount)
-                        Debounce = false
-                        DropList.Visible = false
-                        DropdownFiller.Visible = false
-                    end
 
                     for _, Item in next, NewList do
                         Utility:Create('TextButton', {
@@ -3483,7 +3559,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Hovering = false
                         end)
     
-                        OptionButton.MouseButton1Click:Connect(function()
+                        Utility:BindClick(OptionButton, function()
                             for _, Button in next, DropList:GetChildren() do
                                 if Button:IsA('TextButton') then
                                     Utility:Tween(Button, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
@@ -3495,13 +3571,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Config[Name] = Item
                             task.wait(0.5)
                             Opened = false
-                            if #NewList <= 5 then
-                                Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                                Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, DropListLayout.AbsoluteContentSize.Y)}, 0.25)
-                            else
-                                Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 150)}, 0.25)
-                                Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 150)}, 0.25)
-                            end
                             Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
@@ -3730,7 +3799,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Callback(FinalColor)
                 end
 
-                ColorpickerButton.MouseButton1Click:Connect(function()
+                Utility:BindClick(ColorpickerButton, function()
                     if not Debounce then
                         if Opened then
                             Opened = false
@@ -3738,8 +3807,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Utility:Tween(RGBPicker, {Size = UDim2.new(1, -49, 0, 0)}, 0.25)
                             Utility:Tween(DarknessPicker, {Size = UDim2.new(0, 25, 0, 0)}, 0.25)
                             Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, 114)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 0, 0, 114)}, 0.25)
                             UpdateSectionSize()
                             Debounce = true
                             task.wait(DebounceAmount)
@@ -3750,8 +3817,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Opened = true
                             ColorpickerFiller.Visible = true
                             ColorpickerDropdown.Visible = true
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, 114)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, 114)}, 0.25)
                             Utility:Tween(ColorpickerDropdown, {Size = UDim2.new(1, 0, 0, 114)}, 0.25)
                             Utility:Tween(RGBPicker, {Size = UDim2.new(1, -49, 0, 100)}, 0.25)
                             Utility:Tween(DarknessPicker, {Size = UDim2.new(0, 25, 0, 100)}, 0.25)
@@ -4038,15 +4103,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                 UpdateImageCanvas()
 
-                Button.MouseButton1Click:Connect(function()
+                Utility:BindClick(Button, function()
                     if not Debounce then
                         if Opened then
                             Opened = false
                             Utility:Tween(ImageFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(ImageDropdown, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(ImageIcon, {ImageColor3 = Theme.SecondaryTextColor}, 0.25)
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize - UDim2.new(0, 400, 0, ImageSize.Y.Offset + 10)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size - UDim2.new(0, 400, 0, ImageSize.Y.Offset + 10)}, 0.25)
                             Utility:Tween(Image, {Size = UDim2.new(0, 0, 0, 0)}, 0.25)
                             UpdateImageCanvas()
                             UpdateSectionSize()
@@ -4061,8 +4124,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ImageDropdown.Visible = true
                             Utility:Tween(ImageDropdown, {Size = UDim2.new(1, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
                             Utility:Tween(ImageFiller, {Size = UDim2.new(1, 0, 0, ImageSize.Y.Offset + 10 - 6)}, 0.25)
-                            Utility:Tween(Tab, {CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
-                            Utility:Tween(Section, {Size = Section.Size + UDim2.new(0, 0, 0, ImageSize.Y.Offset + 10)}, 0.25)
                             Utility:Tween(Image, {Size = ImageSize}, 0.25)
                             UpdateImageCanvas()
                             UpdateSectionSize()
