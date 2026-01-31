@@ -1742,7 +1742,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = Theme.BackgroundColor,
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, 428, 0, 365),
+            -- Fill the tab container so it can adapt to mobile sizes.
+            Size = UDim2.new(1, 0, 1, 0),
             BorderSizePixel = 0,
             ScrollBarImageColor3 = Theme.ScrollBarColor,
             ScrollBarThickness = IsMobileDevice and 5 or 3
@@ -1879,19 +1880,21 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 Parent = Tab,
                 BackgroundColor3 = Theme.BackgroundColor,
                 BorderSizePixel = 0,
-                Size = UDim2.new(0, 410, 0, 30),
+                -- Use full available width to prevent overflow on mobile.
+                Size = UDim2.new(1, 0, 0, 30),
             }, {
                 Utility:Create('TextLabel', {
                     Name = Name..'SectionLabel',
                     BackgroundColor3 = Theme.BackgroundColor,
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(0, 410, 0, 30),
+                    Size = UDim2.new(1, 0, 0, 30),
                     Font = Enum.Font.Gotham,
                     Text = Name,
                     TextColor3 = Theme.SecondaryTextColor,
                     TextSize = 14,
-                    TextXAlignment = Enum.TextXAlignment.Left
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextTruncate = Enum.TextTruncate.AtEnd
                 }, {
                     Utility:Create('UIPadding', {
                         Name = Name..'SectionLabelPadding',
@@ -1931,7 +1934,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             function UpdateSectionSize()
                 local ContentSize = Section[Name..'ListLayout'].AbsoluteContentSize
 
-                Utility:Tween(Section, {Size = UDim2.new(0, ContentSize.X, 0, ContentSize.Y)}, 0.25)
+                -- Keep width stable (responsive) and only grow vertically.
+                Utility:Tween(Section, {Size = UDim2.new(1, 0, 0, ContentSize.Y)}, 0.25)
             end
 
             for _, Item in next, Section:GetChildren() do
@@ -1960,7 +1964,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = LabelText..'LabelHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.OtherElementColor,
-                    Size = UDim2.new(0, 410, 0, 30)
+                    Size = UDim2.new(1, 0, 0, 30)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -1977,12 +1981,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = LabelText..'Label',
                         BackgroundColor3 = Theme.OtherElementColor,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 410, 0, 30),
+                        Size = UDim2.new(1, 0, 0, 30),
                         Font = Enum.Font.Gotham,
                         TextColor3 = Theme.PrimaryTextColor,
                         TextSize = 16,
                         Text = LabelText,
-                        TextXAlignment = Enum.TextXAlignment.Left
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextTruncate = Enum.TextTruncate.AtEnd
                     }, {
                         Utility:Create('UICorner', {
                             CornerRadius = UDim.new(0, 5),
@@ -2029,7 +2034,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Title..'ParagraphHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 37)
+                    -- Use full available width; height is calculated from wrapped text.
+                    Size = UDim2.new(1, 0, 0, 37)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2047,12 +2053,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 0),
-                        Size = UDim2.new(0, 410, 0, 20),
+                        Size = UDim2.new(1, 0, 0, 20),
                         Font = Enum.Font.Gotham,
                         Text = Title,
                         TextColor3 = Theme.PrimaryTextColor,
                         TextSize = 16,
-                        TextXAlignment = Enum.TextXAlignment.Left
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextTruncate = Enum.TextTruncate.AtEnd
                     }, {
                         Utility:Create('UICorner', {
                             CornerRadius = UDim.new(0, 5),
@@ -2068,7 +2075,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 20),
-                        Size = UDim2.new(0, 410, 0, 20),
+                        Size = UDim2.new(1, 0, 0, 20),
                         Font = Enum.Font.Gotham,
                         Text = Paragraph,
                         TextColor3 = Theme.SecondaryTextColor,
@@ -2092,10 +2099,25 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local ParagraphContent = Section[Title..'ParagraphHolder'][Title..'ParagraphContent']
                 local ParagraphTitle = Section[Title..'ParagraphHolder'][Title..'ParagraphTitle']
 
-                local TextSizeOld = TextService:GetTextSize(Paragraph, 14, Enum.Font.Gotham, Vector2.new(410, math.huge))
+                local function RecalcParagraphHeight()
+                    local wrapWidth = ParagraphContent.AbsoluteSize.X
+                    if wrapWidth <= 0 then
+                        wrapWidth = ParagraphHolder.AbsoluteSize.X
+                    end
+                    if wrapWidth <= 0 then
+                        wrapWidth = 410 -- fallback for first frame
+                    end
 
-                ParagraphHolder.Size = UDim2.new(0, 410, 0, TextSizeOld.Y + 25)
-                ParagraphContent.Size = UDim2.new(0, 410, 0, TextSizeOld.Y)
+                    local textSize = TextService:GetTextSize(ParagraphContent.Text, 14, Enum.Font.Gotham, Vector2.new(wrapWidth, math.huge))
+                    ParagraphContent.Size = UDim2.new(1, 0, 0, textSize.Y)
+                    ParagraphHolder.Size = UDim2.new(1, 0, 0, textSize.Y + 25)
+                    UpdateSectionSize()
+                end
+
+                -- Wait one frame so AbsoluteSize is valid on mobile, then size correctly.
+                task.defer(RecalcParagraphHeight)
+                ParagraphContent:GetPropertyChangedSignal('Text'):Connect(RecalcParagraphHeight)
+                ParagraphHolder:GetPropertyChangedSignal('AbsoluteSize'):Connect(RecalcParagraphHeight)
 
                 UpdateSectionSize()
 
@@ -2122,25 +2144,22 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Old = ParagraphContent.Text
                     ParagraphTitle.Text = NewTitle
                     ParagraphContent.Text = NewParagraph
-                    local TextSizeNew = TextService:GetTextSize(ParagraphContent.Text, 14, Enum.Font.Gotham, Vector2.new(410, math.huge))
-                    local TextSizeOld = TextService:GetTextSize(Old, 14, Enum.Font.Gotham, Vector2.new(410, math.huge))
+                    -- With responsive width on mobile, recompute based on actual wrap width.
+                    -- (Prevents the paragraph height being underestimated and overlapping the next element.)
+                    task.defer(function()
+                        local wrapWidth = ParagraphContent.AbsoluteSize.X
+                        if wrapWidth <= 0 then
+                            wrapWidth = ParagraphHolder.AbsoluteSize.X
+                        end
+                        if wrapWidth <= 0 then
+                            wrapWidth = 410
+                        end
 
-                    if TextSizeNew.Y > 14 and TextSizeNew.Y > TextSizeOld.Y then
-                        Tab.CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, TextSizeOld.Y + 5)
-                        Section.Size = Section.Size - UDim2.new(0, 0, 0, TextSizeOld.Y + 5)
-                        Tab.CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, TextSizeNew.Y + 5)
-                        Section.Size = Section.Size + UDim2.new(0, 0, 0, TextSizeNew.Y + 5)
-                        ParagraphHolder.Size = UDim2.new(0, 410, 0, TextSizeNew.Y + 20)
-                        ParagraphContent.Size = UDim2.new(0, 410, 0, TextSizeNew.Y)
-                    elseif TextSizeNew.Y < TextSizeOld.Y then
-                        Tab.CanvasSize = Tab.CanvasSize - UDim2.new(0, 0, 0, TextSizeOld.Y + 5)
-                        Section.Size = Section.Size - UDim2.new(0, 0, 0, TextSizeOld.Y + 5)
-                        Tab.CanvasSize = Tab.CanvasSize + UDim2.new(0, 0, 0, TextSizeNew.Y + 5)
-                        Section.Size = Section.Size + UDim2.new(0, 0, 0, TextSizeNew.Y + 5)
-                        ParagraphHolder.Size = ParagraphHolder.Size - UDim2.new(0, 0, 0, TextSizeOld.Y)
-                        ParagraphHolder.Size = UDim2.new(0, 410, 0, TextSizeNew.Y + 20)
-                        ParagraphContent.Size = UDim2.new(0, 410, 0, TextSizeNew.Y)
-                    end       
+                        local newSize = TextService:GetTextSize(ParagraphContent.Text, 14, Enum.Font.Gotham, Vector2.new(wrapWidth, math.huge))
+                        ParagraphContent.Size = UDim2.new(1, 0, 0, newSize.Y)
+                        ParagraphHolder.Size = UDim2.new(1, 0, 0, newSize.Y + 25)
+                        UpdateSectionSize()
+                    end)
                 end
                 return ParagraphFunctions
             end
@@ -2765,7 +2784,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'ToggleHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 40)
+                    Size = UDim2.new(1, 0, 0, 40)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2782,13 +2801,15 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = Name..'ToggleText',
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 0, 0, 5),
-                        Size = UDim2.new(0, 344, 0, 30),
+                        Position = UDim2.new(0, 0, 0, 0),
+                        Size = UDim2.new(1, -70, 1, 0),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
                         TextSize = 16,
-                        TextXAlignment = Enum.TextXAlignment.Left
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextYAlignment = Enum.TextYAlignment.Center,
+                        TextTruncate = Enum.TextTruncate.AtEnd
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Name..'ToggleTextPadding',
@@ -2798,7 +2819,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Utility:Create('Frame', {
                         Name = Name..'Toggle',
                         BackgroundColor3 = Theme.SecondaryElementColor,
-                        Position = UDim2.new(0, 352, 0, 8),
+                        AnchorPoint = Vector2.new(0, 0.5),
+                        Position = UDim2.new(1, -58, 0.5, 0),
                         Size = UDim2.new(0, 50, 0, 25)        
                     }, {
                         Utility:Create('UIStroke', {
@@ -2830,7 +2852,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 0, 0),
-                        Size = UDim2.new(0, 410, 0, 40),
+                        Size = UDim2.new(1, 0, 1, 0),
                         Font = Enum.Font.SourceSans,
                         Text = '',
                         TextColor3 = Color3.fromRGB(0, 0, 0),
@@ -2962,7 +2984,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Name..'DropdownHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    Size = UDim2.new(0, 410, 0, 40)
+                    Size = UDim2.new(1, 0, 0, 40)
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -2980,12 +3002,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         Position = UDim2.new(0, 0, 0, 5),
-                        Size = UDim2.new(0, 200, 0, 30),
+                        Size = UDim2.new(1, -140, 0, 30),
                         Font = Enum.Font.Gotham,
                         Text = Name,
                         TextColor3 = Theme.PrimaryTextColor,
                         TextSize = 16,
-                        TextXAlignment = Enum.TextXAlignment.Left
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        TextTruncate = Enum.TextTruncate.AtEnd
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Name..'DropdownTextPadding',
@@ -2997,7 +3020,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 377, 0, 8),
+                        AnchorPoint = Vector2.new(1, 0.5),
+                        Position = UDim2.new(1, -8, 0.5, 0),
                         Rotation = 270,
                         Size = UDim2.new(0, 25, 0, 25),
                         Image = 'rbxassetid://3926305904',
@@ -3009,13 +3033,15 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Name = Name..'DropdownSelectedText',
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 199, 0, 8),
-                        Size = UDim2.new(0, 176, 0, 25),
+                        AnchorPoint = Vector2.new(1, 0.5),
+                        Position = UDim2.new(1, -35, 0.5, 0),
+                        Size = UDim2.new(0, 160, 0, 25),
                         Font = Enum.Font.Gotham,
                         Text = SelectedItem,
                         TextColor3 = Theme.SecondaryTextColor,
                         TextSize = 14,
-                        TextXAlignment = Enum.TextXAlignment.Right
+                        TextXAlignment = Enum.TextXAlignment.Right,
+                        TextTruncate = Enum.TextTruncate.AtEnd
                     }, {
                         Utility:Create('UICorner', {
                             CornerRadius = UDim.new(0, 5),
