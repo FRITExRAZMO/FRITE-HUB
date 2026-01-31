@@ -1,3 +1,4 @@
+-- // Rewrite By FRITE
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -1932,27 +1933,28 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             end
             
             function UpdateSectionSize()
-                local ContentSize = Section[Name..'ListLayout'].AbsoluteContentSize
+                local ListLayout = Section[Name..'ListLayout']
+                local ContentSize = ListLayout.AbsoluteContentSize
 
-                -- Keep width stable (responsive) and only grow vertically.
-                Utility:Tween(Section, {Size = UDim2.new(1, 0, 0, ContentSize.Y)}, 0.25)
+                -- IMPORTANT: set size immediately so sections never overlap while tweening.
+                -- (Overlapping happens when the next Section is laid out before this one finishes tweening.)
+                Section.Size = UDim2.new(1, 0, 0, ContentSize.Y)
             end
 
-            for _, Item in next, Section:GetChildren() do
-                RunService.RenderStepped:Connect(function()
-                    if Item:IsA('Frame') then
-                        Item.Changed:Connect(function(Property)
-                            if Property == 'Size' then
-                                UpdateSectionSize()
-                            end
-                        end)
-                    end
-                end)
-            end
+            -- Keep Section height synced with its content reliably.
+            -- Using AbsoluteContentSize avoids creating RenderStepped/Changed connection spam.
+            local ListLayout = Section[Name..'ListLayout']
+            ListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+                task.defer(UpdateSectionSize)
+            end)
+            Section.ChildAdded:Connect(function()
+                task.defer(UpdateSectionSize)
+            end)
+            Section.ChildRemoved:Connect(function()
+                task.defer(UpdateSectionSize)
+            end)
 
-            UpdateSectionSize()
-            Section.ChildAdded:Connect(UpdateSectionSize)
-            Section.ChildRemoved:Connect(UpdateSectionSize)
+            task.defer(UpdateSectionSize)
 
             local Elements = {}
             
