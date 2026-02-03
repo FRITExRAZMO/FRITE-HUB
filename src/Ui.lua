@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support
+-- // Rewrite by FRITE for mobile support dropdown ?
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3158,7 +3158,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, -8, 0, 20),
+                        Position = UDim2.new(1, -8, 0.5, 0),
                         Rotation = 270,
                         Size = UDim2.new(0, 25, 0, 25),
                         Image = 'rbxassetid://3926305904',
@@ -3171,7 +3171,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, -35, 0, 20),
+                        Position = UDim2.new(1, -35, 0.5, 0),
                         Size = UDim2.new(0, 160, 0, 25),
                         Font = Enum.Font.Gotham,
                         Text = SelectedItem,
@@ -3187,34 +3187,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Utility:Create('UIPadding', {
                             Name = Name..'DropdownSelectedTextPadding',
                             PaddingRight = UDim.new(0, 7)
-                        })
-                    }),
-                    Utility:Create('ScrollingFrame', {
-                        Name = Name..'DropList',
-                        Active = true,
-                        BackgroundColor3 = Theme.PrimaryElementColor,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 0, 40),
-                        Size = UDim2.new(1, 0, 0, 0),
-                        Visible = false,
-                        ScrollBarImageColor3 = Theme.ScrollBarColor,
-                        ScrollBarThickness = 3,
-                        ZIndex = 1
-                    }, {
-                        Utility:Create('UIStroke', {
-                            Name = Name..'DropListStroke',
-                            ApplyStrokeMode = 'Contextual',
-                            Color = Theme.UIStrokeColor,
-                            LineJoinMode = 'Round',
-                            Thickness = 1
-                        }),
-                        Utility:Create('UIListLayout', {
-                            Name = Name..'DropListLayout',
-                            SortOrder = Enum.SortOrder.LayoutOrder
-                        }),
-                        Utility:Create('UICorner', {
-                            CornerRadius = UDim.new(0, 5),
-                            Name = Name..'DropdownListCorner'
                         })
                     }),
                     Utility:Create('TextButton', {
@@ -3236,15 +3208,44 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     })
                 })
             
+                Utility:Create('ScrollingFrame', {
+                    Name = Name..'DropList',
+                    Parent = Section,
+                    Active = true,
+                    BackgroundColor3 = Theme.PrimaryElementColor,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    Visible = false,
+                    ScrollBarImageColor3 = Theme.ScrollBarColor,
+                    ScrollBarThickness = 3
+                }, {
+                    Utility:Create('UIStroke', {
+                        Name = Name..'DropListStroke',
+                        ApplyStrokeMode = 'Contextual',
+                        Color = Theme.UIStrokeColor,
+                        LineJoinMode = 'Round',
+                        Thickness = 1
+                    }),
+                    Utility:Create('UIListLayout', {
+                        Name = Name..'DropListLayout',
+                        SortOrder = Enum.SortOrder.LayoutOrder
+                    }),
+                    Utility:Create('UICorner', {
+                        CornerRadius = UDim.new(0, 5),
+                        Name = Name..'DropdownListCorner'
+                    })
+                })
+            
                 local DropdownHolder = Section[Name..'DropdownHolder']
-                local DropList = DropdownHolder[Name..'DropList']
+                local DropList = Section[Name..'DropList']
                 local DropdownButton = DropdownHolder[Name..'DropdownButton']
                 local DropdownIcon = DropdownHolder[Name..'DropdownIcon']
                 local DropdownSelectedText = DropdownHolder[Name..'DropdownSelectedText']
                 local DropListLayout = DropList[Name..'DropListLayout']
             
-                UpdateSectionSize()
                 AssignElementOrder(DropdownHolder)
+                AssignElementOrder(DropList)
+                UpdateSectionSize()
             
                 Config[Name] = Default
             
@@ -3272,28 +3273,19 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end
             
                     if not Opened then
-                        local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40)}
+                        local sizeProps = {Size = UDim2.new(1, 0, 0, 0)}
                         if UseTween then
-                            Utility:Tween(DropdownHolder, holderSizeProps, 0.25)
+                            Utility:Tween(DropList, sizeProps, 0.25)
                         else
-                            DropdownHolder.Size = holderSizeProps.Size
+                            DropList.Size = sizeProps.Size
                         end
-                        UpdateSectionSize()
-                        return
-                    end
-            
-                    local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
-                    if UseTween then
-                        Utility:Tween(DropList, sizeProps, 0.25)
                     else
-                        DropList.Size = sizeProps.Size
-                    end
-            
-                    local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40 + openHeight)}
-                    if UseTween then
-                        Utility:Tween(DropdownHolder, holderSizeProps, 0.25)
-                    else
-                        DropdownHolder.Size = holderSizeProps.Size
+                        local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
+                        if UseTween then
+                            Utility:Tween(DropList, sizeProps, 0.25)
+                        else
+                            DropList.Size = sizeProps.Size
+                        end
                     end
                     UpdateSectionSize()
                 end
@@ -3342,7 +3334,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if Opened then
                         DropList.Visible = true
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
-            
                         task.defer(function()
                             ApplyDropdownSizing(true)
                         end)
@@ -3502,8 +3493,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             })
                         })
             
-                        UpdateSectionSize()
-            
                         if #List == 0 then
                             DropdownSelectedText.Text = 'None'
                             SelectedItem = 'None'
@@ -3559,6 +3548,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 end
                 return DropdownFunctions
             end
+            
 
             function Elements:CreateColorpicker(Name, DefaultColor, DebounceAmount, Callback, ...)
                 local Name = Name or 'Colorpicker'
