@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support
+-- // Rewrite by FRITE for mobile support dropdown
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3199,7 +3199,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3,
-                        ZIndex = 100
+                        ZIndex = 1
                     }, {
                         Utility:Create('UIStroke', {
                             Name = Name..'DropListStroke',
@@ -3272,14 +3272,31 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end
 
                     if not Opened then
+                        -- Réinitialiser la taille du DropdownHolder quand fermé
+                        local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40)}
+                        if UseTween then
+                            Utility:Tween(DropdownHolder, holderSizeProps, 0.25)
+                        else
+                            DropdownHolder.Size = holderSizeProps.Size
+                        end
                         return
                     end
 
+                    -- Ajuster la taille du DropList
                     local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
                     if UseTween then
                         Utility:Tween(DropList, sizeProps, 0.25)
                     else
                         DropList.Size = sizeProps.Size
+                    end
+
+                    -- Ajuster la taille du DropdownHolder pour inclure le DropList ouvert
+                    -- 40 (hauteur du holder) + openHeight (hauteur du DropList) + 5 (espacement)
+                    local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40 + openHeight + 5)}
+                    if UseTween then
+                        Utility:Tween(DropdownHolder, holderSizeProps, 0.25)
+                    else
+                        DropdownHolder.Size = holderSizeProps.Size
                     end
                 end
 
@@ -3325,9 +3342,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Opened = not Opened
 
                     if Opened then
-                        DropdownHolder.ZIndex = 100
                         DropList.Visible = true
-                        DropList.ZIndex = 101
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
 
                         -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
@@ -3335,9 +3350,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ApplyDropdownSizing(true)
                         end)
                     else
-                        DropdownHolder.ZIndex = 100
-                        DropList.ZIndex = 100
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.delay(0.25, function()
                             DropList.Visible = false
@@ -3362,7 +3376,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         AutoButtonColor = false,
                         Text = Item,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        ZIndex = 101
+                        ZIndex = 2
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Item..'OptionButtonPadding',
@@ -3414,9 +3428,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Callback(Item)
                         Config[Name] = Item
                         Opened = false
-                        DropdownHolder.ZIndex = 1
-                        DropList.ZIndex = 100
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.wait(0.25)
                         DropList.Visible = false
@@ -3455,8 +3468,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     local NewList = NewList or {}
                     if Opened then
                         Opened = false
-                        DropdownHolder.ZIndex = 1
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.delay(0.25, function()
                             DropList.Visible = false
@@ -3483,7 +3496,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             AutoButtonColor = false,
                             Text = Item,
                             TextXAlignment = Enum.TextXAlignment.Left,
-                            ZIndex = 101
+                            ZIndex = 2
                         }, {
                             Utility:Create('UIPadding', {
                                 Name = Item..'OptionButtonPadding',
@@ -3544,6 +3557,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             task.wait(0.5)
                             Opened = false
                             Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                            Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                             Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                             task.wait(0.25)
                             DropList.Visible = false
