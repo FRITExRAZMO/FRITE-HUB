@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support
+-- // Rewrite by FRITE for mobile support d dddd
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3122,7 +3122,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
                     Size = UDim2.new(1, 0, 0, 40),
-                    ClipsDescendants = false
+                    ClipsDescendants = false  -- Wichtig für Overlap
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -3208,18 +3208,18 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Name = Name..'DropdownButtonCorner'
                         })
                     }),
-                    -- Dropdown-Liste DIREKT im Holder, NACH UNTEN
+                    -- Dropdown-Liste überlappt andere Elemente
                     Utility:Create('ScrollingFrame', {
                         Name = Name..'DropList',
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 0, 45), -- Position UNTER dem Button
+                        Position = UDim2.new(0, 0, 0, 45), -- 5px Abstand nach unten
                         Size = UDim2.new(1, 0, 0, 0),
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3,
-                        ZIndex = 101,
+                        ZIndex = 200,  -- Hoher ZIndex für Overlap
                         ClipsDescendants = true
                     }, {
                         Utility:Create('UIStroke', {
@@ -3280,20 +3280,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         return
                     end
             
-                    -- Holder expandiert um die DropList aufzunehmen
-                    local holderHeight = 40 + openHeight + 5
-                    local holderSize = {Size = UDim2.new(1, 0, 0, holderHeight)}
                     local listSize = {Size = UDim2.new(1, 0, 0, openHeight)}
                     
                     if UseTween then
-                        Utility:Tween(DropdownHolder, holderSize, 0.25)
                         Utility:Tween(DropList, listSize, 0.25)
                     else
-                        DropdownHolder.Size = holderSize.Size
                         DropList.Size = listSize.Size
                     end
-                    
-                    task.defer(UpdateSectionSize)
                 end
             
                 local function CloseDropdown()
@@ -3301,15 +3294,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     
                     Opened = false
                     DropdownHolder.ZIndex = 1
+                    DropList.ZIndex = 1
                     
-                    -- Holder zurück zur ursprünglichen Größe
-                    Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                     Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                     Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                     
                     task.wait(0.25)
                     DropList.Visible = false
-                    UpdateSectionSize()
                 end
             
                 DropListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
@@ -3354,9 +3345,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Opened = not Opened
             
                     if Opened then
-                        DropdownHolder.ZIndex = 100
+                        DropdownHolder.ZIndex = 200  -- Hoher ZIndex für ganzen Holder
                         DropList.Visible = true
-                        DropList.ZIndex = 101
+                        DropList.ZIndex = 201  -- Noch höher für Liste
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
             
                         task.defer(function()
@@ -3384,7 +3375,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         AutoButtonColor = false,
                         Text = Item,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        ZIndex = 102
+                        ZIndex = 202  -- Höchster ZIndex für Buttons
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Item..'OptionButtonPadding',
@@ -3506,7 +3497,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             AutoButtonColor = false,
                             Text = Item,
                             TextXAlignment = Enum.TextXAlignment.Left,
-                            ZIndex = 102
+                            ZIndex = 202
                         }, {
                             Utility:Create('UIPadding', {
                                 Name = Item..'OptionButtonPadding',
@@ -3567,8 +3558,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         DropdownSelectedText.Text = 'None'
                         SelectedItem = 'None'
                     end
-                    
-                    UpdateSectionSize()
                 end
                 
                 return DropdownFunctions
