@@ -3364,6 +3364,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         DropdownFiller.Visible = true
                         DropdownFiller.ZIndex = 9
                         DropList.Visible = true
+                        DropList.ZIndex = 11
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
 
                         -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
@@ -3373,6 +3374,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     else
                         DropdownHolder.ZIndex = 1
                         DropdownFiller.ZIndex = 1
+                        DropList.ZIndex = 1
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
@@ -3453,6 +3455,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Opened = false
                         DropdownHolder.ZIndex = 1
                         DropdownFiller.ZIndex = 1
+                        DropList.ZIndex = 1
                         Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
