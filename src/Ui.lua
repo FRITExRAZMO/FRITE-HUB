@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support d dddd
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3122,7 +3122,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
                     Size = UDim2.new(1, 0, 0, 40),
-                    ClipsDescendants = false  -- Wichtig für Overlap
+                    ClipsDescendants = false,
+                    ZIndex = 1
                 }, {
                     Utility:Create('UICorner', {
                         CornerRadius = UDim.new(0, 5),
@@ -3146,7 +3147,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         TextColor3 = Theme.PrimaryTextColor,
                         TextSize = 16,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        TextTruncate = Enum.TextTruncate.AtEnd
+                        TextTruncate = Enum.TextTruncate.AtEnd,
+                        ZIndex = 2
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Name..'DropdownTextPadding',
@@ -3165,7 +3167,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Image = 'rbxassetid://3926305904',
                         ImageColor3 = Theme.SecondaryTextColor,
                         ImageRectOffset = Vector2.new(964, 284),
-                        ImageRectSize = Vector2.new(36, 36)
+                        ImageRectSize = Vector2.new(36, 36),
+                        ZIndex = 2
                     }),
                     Utility:Create('TextLabel', {
                         Name = Name..'DropdownSelectedText',
@@ -3179,7 +3182,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         TextColor3 = Theme.SecondaryTextColor,
                         TextSize = 14,
                         TextXAlignment = Enum.TextXAlignment.Right,
-                        TextTruncate = Enum.TextTruncate.AtEnd
+                        TextTruncate = Enum.TextTruncate.AtEnd,
+                        ZIndex = 2
                     }, {
                         Utility:Create('UICorner', {
                             CornerRadius = UDim.new(0, 5),
@@ -3201,25 +3205,37 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Text = '',
                         TextColor3 = Color3.fromRGB(0, 0, 0),
                         TextSize = 14,
-                        ZIndex = 2
+                        ZIndex = 3
                     }, {
                         Utility:Create('UICorner', {
                             CornerRadius = UDim.new(0, 5),
                             Name = Name..'DropdownButtonCorner'
                         })
-                    }),
-                    -- Dropdown-Liste überlappt andere Elemente
+                    })
+                })
+            
+                -- Dropdown-Liste als separates Frame DIREKT in der Tab (nicht in Section!)
+                -- Dadurch ist es Ã¼ber allen Section-Elementen
+                Utility:Create('Frame', {
+                    Name = Name..'DropListContainer',
+                    Parent = Tab,  -- WICHTIG: Parent ist Tab, nicht Section!
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Visible = false,
+                    ZIndex = 1000,  -- SEHR hoher ZIndex
+                    ClipsDescendants = false
+                }, {
                     Utility:Create('ScrollingFrame', {
                         Name = Name..'DropList',
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 0, 45), -- 5px Abstand nach unten
-                        Size = UDim2.new(1, 0, 0, 0),
-                        Visible = false,
+                        Position = UDim2.new(0, 0, 0, 0),  -- Wird dynamisch gesetzt
+                        Size = UDim2.new(0, 0, 0, 0),
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3,
-                        ZIndex = 200,  -- Hoher ZIndex für Overlap
+                        ZIndex = 1001,
                         ClipsDescendants = true
                     }, {
                         Utility:Create('UIStroke', {
@@ -3242,7 +3258,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 })
             
                 local DropdownHolder = Section[Name..'DropdownHolder']
-                local DropList = DropdownHolder[Name..'DropList']
+                local DropListContainer = Tab[Name..'DropListContainer']
+                local DropList = DropListContainer[Name..'DropList']
                 local DropdownButton = DropdownHolder[Name..'DropdownButton']
                 local DropdownIcon = DropdownHolder[Name..'DropdownIcon']
                 local DropdownSelectedText = DropdownHolder[Name..'DropdownSelectedText']
@@ -3270,6 +3287,21 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     return openHeight, contentY
                 end
             
+                local function UpdateDropdownPosition()
+                    -- Berechne die absolute Position des Dropdown-Holders relativ zum Tab
+                    local holderPos = DropdownHolder.AbsolutePosition
+                    local tabPos = Tab.AbsolutePosition
+                    local sectionPadding = Section[Name..'SectionPadding']
+                    
+                    -- Relative Position im Tab
+                    local relativeX = holderPos.X - tabPos.X
+                    local relativeY = holderPos.Y - tabPos.Y
+                    
+                    -- Setze die DropList-Position direkt unter dem Holder
+                    DropList.Position = UDim2.new(0, relativeX, 0, relativeY + 45)
+                    DropList.Size = UDim2.new(0, DropdownHolder.AbsoluteSize.X, 0, DropList.Size.Y.Offset)
+                end
+            
                 local function ApplyDropdownSizing(UseTween)
                     local openHeight, contentY = GetDropdownOpenHeight()
                     if contentY > 0 then
@@ -3280,7 +3312,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         return
                     end
             
-                    local listSize = {Size = UDim2.new(1, 0, 0, openHeight)}
+                    UpdateDropdownPosition()
+                    
+                    local listSize = {Size = UDim2.new(0, DropdownHolder.AbsoluteSize.X, 0, openHeight)}
                     
                     if UseTween then
                         Utility:Tween(DropList, listSize, 0.25)
@@ -3293,20 +3327,25 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     if not Opened then return end
                     
                     Opened = false
-                    DropdownHolder.ZIndex = 1
-                    DropList.ZIndex = 1
                     
-                    Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                    Utility:Tween(DropList, {Size = UDim2.new(0, DropdownHolder.AbsoluteSize.X, 0, 0)}, 0.25)
                     Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                     
                     task.wait(0.25)
-                    DropList.Visible = false
+                    DropListContainer.Visible = false
                 end
             
                 DropListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
                     task.defer(function()
                         ApplyDropdownSizing(false)
                     end)
+                end)
+            
+                -- Update Position wenn gescrollt wird
+                Tab:GetPropertyChangedSignal('CanvasPosition'):Connect(function()
+                    if Opened then
+                        UpdateDropdownPosition()
+                    end
                 end)
             
                 if not ImprovePerformance then
@@ -3345,9 +3384,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Opened = not Opened
             
                     if Opened then
-                        DropdownHolder.ZIndex = 200  -- Hoher ZIndex für ganzen Holder
-                        DropList.Visible = true
-                        DropList.ZIndex = 201  -- Noch höher für Liste
+                        DropListContainer.Visible = true
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
             
                         task.defer(function()
@@ -3375,7 +3412,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         AutoButtonColor = false,
                         Text = Item,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        ZIndex = 202  -- Höchster ZIndex für Buttons
+                        ZIndex = 1002
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Item..'OptionButtonPadding',
@@ -3497,7 +3534,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             AutoButtonColor = false,
                             Text = Item,
                             TextXAlignment = Enum.TextXAlignment.Left,
-                            ZIndex = 202
+                            ZIndex = 1002
                         }, {
                             Utility:Create('UIPadding', {
                                 Name = Item..'OptionButtonPadding',
