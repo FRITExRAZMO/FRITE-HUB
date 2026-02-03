@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support d d
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3207,25 +3207,16 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             CornerRadius = UDim.new(0, 5),
                             Name = Name..'DropdownButtonCorner'
                         })
-                    })
-                })
-            
-                Utility:Create('Frame', {
-                    Name = Name..'DropListContainer',
-                    Parent = Section,
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 0, 0, 0),
-                    Size = UDim2.new(1, 0, 0, 0),
-                    Visible = false,
-                    ZIndex = 100
-                }, {
+                    }),
+                    -- Dropdown-Liste DIREKT im Holder, NACH UNTEN
                     Utility:Create('ScrollingFrame', {
                         Name = Name..'DropList',
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 0, 45),
+                        Position = UDim2.new(0, 0, 0, 45), -- Position UNTER dem Button
                         Size = UDim2.new(1, 0, 0, 0),
+                        Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3,
                         ZIndex = 101,
@@ -3250,22 +3241,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     })
                 })
             
-                Utility:Create('Frame', {
-                    Name = Name..'DropdownFiller',
-                    Parent = Section,
-                    Visible = false,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 0)
-                })
-            
                 local DropdownHolder = Section[Name..'DropdownHolder']
-                local DropListContainer = Section[Name..'DropListContainer']
-                local DropList = DropListContainer[Name..'DropList']
+                local DropList = DropdownHolder[Name..'DropList']
                 local DropdownButton = DropdownHolder[Name..'DropdownButton']
                 local DropdownIcon = DropdownHolder[Name..'DropdownIcon']
                 local DropdownSelectedText = DropdownHolder[Name..'DropdownSelectedText']
                 local DropListLayout = DropList[Name..'DropListLayout']
-                local DropdownFiller = Section[Name..'DropdownFiller']
             
                 AssignElementOrder(DropdownHolder)
                 UpdateSectionSize()
@@ -3299,34 +3280,35 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         return
                     end
             
-                    local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
+                    -- Holder expandiert um die DropList aufzunehmen
+                    local holderHeight = 40 + openHeight + 5
+                    local holderSize = {Size = UDim2.new(1, 0, 0, holderHeight)}
+                    local listSize = {Size = UDim2.new(1, 0, 0, openHeight)}
+                    
                     if UseTween then
-                        Utility:Tween(DropList, sizeProps, 0.25)
-                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, openHeight + 10)}, 0.25)
+                        Utility:Tween(DropdownHolder, holderSize, 0.25)
+                        Utility:Tween(DropList, listSize, 0.25)
                     else
-                        DropList.Size = sizeProps.Size
-                        DropdownFiller.Size = UDim2.new(1, 0, 0, openHeight + 10)
+                        DropdownHolder.Size = holderSize.Size
+                        DropList.Size = listSize.Size
                     end
                     
                     task.defer(UpdateSectionSize)
                 end
             
-                -- Funktion zum Schließen des Dropdowns
                 local function CloseDropdown()
                     if not Opened then return end
                     
                     Opened = false
                     DropdownHolder.ZIndex = 1
-                    DropListContainer.ZIndex = 1
-                    DropdownFiller.ZIndex = 1
                     
+                    -- Holder zurück zur ursprünglichen Größe
+                    Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                     Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                    Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                     Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                     
                     task.wait(0.25)
-                    DropListContainer.Visible = false
-                    DropdownFiller.Visible = false
+                    DropList.Visible = false
                     UpdateSectionSize()
                 end
             
@@ -3373,10 +3355,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             
                     if Opened then
                         DropdownHolder.ZIndex = 100
-                        DropListContainer.ZIndex = 100
-                        DropdownFiller.ZIndex = 99
-                        DropListContainer.Visible = true
-                        DropdownFiller.Visible = true
+                        DropList.Visible = true
+                        DropList.ZIndex = 101
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
             
                         task.defer(function()
@@ -3442,28 +3422,23 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
             
                     Utility:BindClick(OptionButton, function()
-                        -- Alle Buttons zurücksetzen
                         for _, Button in next, DropList:GetChildren() do
                             if Button:IsA('TextButton') then
                                 Utility:Tween(Button, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                             end
                         end
                         
-                        -- Ausgewählten Button highlighten
                         Utility:Tween(OptionButton, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.25)
                         
-                        -- Wert setzen
                         DropdownSelectedText.Text = Item
                         SelectedItem = Item
                         Config[Name] = Item
                         
-                        -- Callback ausführen
                         task.spawn(function()
                             pcall(Callback, Item)
                         end)
                         
-                        -- WICHTIG: Dropdown schließen nach Auswahl
-                        task.wait(0.1) -- Kurze Verzögerung damit man die Auswahl sieht
+                        task.wait(0.1)
                         CloseDropdown()
                     end)
                 end
@@ -3504,14 +3479,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 function DropdownFunctions:UpdateDropdown(NewList)
                     NewList = NewList or {}
                     
-                    -- Dropdown schließen falls offen
                     if Opened then
                         CloseDropdown()
                     end
                     
                     task.wait(0.3)
                     
-                    -- Alte Optionen entfernen
                     for _, Item in next, DropList:GetChildren() do
                         if Item:IsA('TextButton') then
                             Item:Destroy()
@@ -3520,7 +3493,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     
                     List = NewList
             
-                    -- Neue Optionen erstellen
                     for _, Item in next, NewList do
                         Utility:Create('TextButton', {
                             Name = Item..'OptionButton',
@@ -3586,7 +3558,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                                 pcall(Callback, Item)
                             end)
                             
-                            -- WICHTIG: Dropdown schließen nach Auswahl
                             task.wait(0.1)
                             CloseDropdown()
                         end)
