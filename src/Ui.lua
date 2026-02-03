@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support
+-- // Rewrite by FRITE for mobile support dropdown fixed
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3257,16 +3257,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         })
                     })
                 })
-                -- NOTE:
-                -- This Dropdown originally used an extra "DropdownFiller" frame whose height
-                -- was tweened to the dropdown's open height. That pushed all following UI
-                -- elements down and visually looked like a big black/empty area under the
-                -- control (exactly the bug the user reported).
-                --
-                -- We still create the filler (to avoid touching other library code that may
-                -- reference it), but we keep its height at 0 and never make it visible.
-                -- The dropdown list now behaves like an overlay that opens on top of
-                -- whatever is below, without shifting the layout.
                 Utility:Create('Frame', {
                     Name = Name..'DropdownFiller',
                     Parent = Section,
@@ -3323,8 +3313,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
                     if UseTween then
                         Utility:Tween(DropList, sizeProps, 0.25)
+                        -- Expand a transparent filler below the holder so that
+                        -- all following elements are pushed down instead of
+                        -- being covered by the dropdown.
+                        Utility:Tween(DropdownFiller, sizeProps, 0.25)
                     else
                         DropList.Size = sizeProps.Size
+                        DropdownFiller.Size = sizeProps.Size
                     end
                 end
 
@@ -3374,6 +3369,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         DropdownHolder.ZIndex = 10
                         DropList.Visible = true
                         DropList.ZIndex = 11
+                        DropdownFiller.Visible = true
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
 
                         -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
@@ -3383,10 +3379,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     else
                         DropdownHolder.ZIndex = 1
                         DropList.ZIndex = 1
+                        DropdownFiller.ZIndex = 1
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.delay(0.25, function()
                             DropList.Visible = false
+                            DropdownFiller.Visible = false
                         end)
                     end
 
@@ -3460,9 +3459,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Config[Name] = Item
                         Opened = false
                         DropdownHolder.ZIndex = 1
-                        DropdownFiller.ZIndex = 1
                         DropList.ZIndex = 1
+                        DropdownFiller.ZIndex = 1
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.wait(0.25)
                         DropList.Visible = false
@@ -3504,6 +3504,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Opened = false
                         DropdownHolder.ZIndex = 1
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.delay(0.25, function()
                             DropList.Visible = false
