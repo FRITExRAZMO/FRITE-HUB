@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support dropdown
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3116,7 +3116,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local Debounce = false
                 local DropdownFunctions = {}
                 local Hovering = false
-
+            
                 Utility:Create('Frame', {
                     Name = Name..'DropdownHolder',
                     Parent = Section,
@@ -3158,7 +3158,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundTransparency = 1,
                         BorderSizePixel = 0,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, -8, 0.5, 0),
+                        Position = UDim2.new(1, -8, 0, 20),
                         Rotation = 270,
                         Size = UDim2.new(0, 25, 0, 25),
                         Image = 'rbxassetid://3926305904',
@@ -3171,7 +3171,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BackgroundTransparency = 1,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, -35, 0.5, 0),
+                        Position = UDim2.new(1, -35, 0, 20),
                         Size = UDim2.new(0, 160, 0, 25),
                         Font = Enum.Font.Gotham,
                         Text = SelectedItem,
@@ -3194,7 +3194,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 1, 5),
+                        Position = UDim2.new(0, 0, 0, 40),
                         Size = UDim2.new(1, 0, 0, 0),
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
@@ -3235,77 +3235,75 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         })
                     })
                 })
-
+            
                 local DropdownHolder = Section[Name..'DropdownHolder']
                 local DropList = DropdownHolder[Name..'DropList']
                 local DropdownButton = DropdownHolder[Name..'DropdownButton']
                 local DropdownIcon = DropdownHolder[Name..'DropdownIcon']
                 local DropdownSelectedText = DropdownHolder[Name..'DropdownSelectedText']
                 local DropListLayout = DropList[Name..'DropListLayout']
-
+            
                 UpdateSectionSize()
                 AssignElementOrder(DropdownHolder)
-
+            
                 Config[Name] = Default
-
+            
                 local function GetDropdownOpenHeight()
                     local contentY = DropListLayout.AbsoluteContentSize.Y
                     if contentY <= 0 then
                         return 0, 0
                     end
-
+            
                     local maxHeight
                     if IsMobileDevice then
                         maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.75, 160, 260))
                     else
                         maxHeight = 230
                     end
-
+            
                     local openHeight = math.min(contentY, maxHeight)
                     return openHeight, contentY
                 end
-
+            
                 local function ApplyDropdownSizing(UseTween)
                     local openHeight, contentY = GetDropdownOpenHeight()
                     if contentY > 0 then
                         DropList.CanvasSize = UDim2.new(0, 0, 0, contentY)
                     end
-
+            
                     if not Opened then
-                        -- Réinitialiser la taille du DropdownHolder quand fermé
                         local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40)}
                         if UseTween then
                             Utility:Tween(DropdownHolder, holderSizeProps, 0.25)
                         else
                             DropdownHolder.Size = holderSizeProps.Size
                         end
+                        UpdateSectionSize()
                         return
                     end
-
-                    -- Ajuster la taille du DropList
+            
                     local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
                     if UseTween then
                         Utility:Tween(DropList, sizeProps, 0.25)
                     else
                         DropList.Size = sizeProps.Size
                     end
-
-                    -- Ajuster la taille du DropdownHolder pour inclure le DropList ouvert
-                    -- 40 (hauteur du holder) + openHeight (hauteur du DropList) + 5 (espacement)
-                    local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40 + openHeight + 5)}
+            
+                    local holderSizeProps = {Size = UDim2.new(1, 0, 0, 40 + openHeight)}
                     if UseTween then
                         Utility:Tween(DropdownHolder, holderSizeProps, 0.25)
                     else
                         DropdownHolder.Size = holderSizeProps.Size
                     end
+                    UpdateSectionSize()
                 end
-
+            
                 DropListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
                     task.defer(function()
                         ApplyDropdownSizing(false)
                     end)
                 end)
-
+            
                 if not ImprovePerformance then
                     task.spawn(function()
                         while task.wait() do
@@ -3332,37 +3330,35 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         end
                     end)
                 end
-
+            
                 Utility:BindClick(DropdownButton, function()
                     if Debounce then
                         return
                     end
-
+            
                     Debounce = true
                     Opened = not Opened
-
+            
                     if Opened then
                         DropList.Visible = true
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
-
-                        -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
+            
                         task.defer(function()
                             ApplyDropdownSizing(true)
                         end)
                     else
-                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                        Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
+                        ApplyDropdownSizing(true)
                         task.delay(0.25, function()
                             DropList.Visible = false
                         end)
                     end
-
+            
                     task.delay(DebounceAmount, function()
                         Debounce = false
                     end)
                 end)
-
+            
                 for _, Item in next, List do
                     Utility:Create('TextButton', {
                         Name = Item..'OptionButton',
@@ -3387,9 +3383,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Name = Item..'OptionButtonCorner'
                         })
                     })
-
+            
                     local OptionButton = DropList[Item..'OptionButton']
-
+            
                     if not ImprovePerformance then
                         task.spawn(function()
                             while task.wait() do
@@ -3406,17 +3402,17 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             end
                         end)
                     end
-
+            
                     OptionButton.MouseEnter:Connect(function()
                         Hovering = true
                         Utility:Tween(OptionButton, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.5)
                     end)
-    
+            
                     OptionButton.MouseLeave:Connect(function()
                         Utility:Tween(OptionButton, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.5)
                         Hovering = false
                     end)
-
+            
                     Utility:BindClick(OptionButton, function()
                         for _, Button in next, DropList:GetChildren() do
                             if Button:IsA('TextButton') then
@@ -3428,31 +3424,30 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Callback(Item)
                         Config[Name] = Item
                         Opened = false
-                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                        Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
+                        ApplyDropdownSizing(true)
                         task.wait(0.25)
                         DropList.Visible = false
                     end)
                 end
-
+            
                 if Default ~= nil then
                     local Option = DropList[Default..'OptionButton']
                     Utility:Tween(Option, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.25)
                     DropdownSelectedText.Text = Default
                     Callback(Default)
                 end
-
+            
                 DropdownHolder.MouseEnter:Connect(function()
                     Hovering = true
                     Utility:Tween(DropdownHolder, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.5)
                 end)
-
+            
                 DropdownHolder.MouseLeave:Connect(function()
                     Utility:Tween(DropdownHolder, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.5)
                     Hovering = false
                 end)
-
+            
                 function DropdownFunctions:Set(Value)
                     SelectedItem = tostring(Value)
                     DropdownSelectedText.Text = SelectedItem
@@ -3462,15 +3457,14 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
                 end
                 ConfigUpdates[Name] = DropdownFunctions
-
+            
                 function DropdownFunctions:UpdateDropdown(NewList)
                     task.wait(0.25)
                     local NewList = NewList or {}
                     if Opened then
                         Opened = false
-                        Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                        Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
+                        ApplyDropdownSizing(true)
                         task.delay(0.25, function()
                             DropList.Visible = false
                         end)
@@ -3482,7 +3476,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         end
                     end
                     List = NewList
-
+            
                     for _, Item in next, NewList do
                         Utility:Create('TextButton', {
                             Name = Item..'OptionButton',
@@ -3507,16 +3501,16 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                                 Name = Item..'OptionButtonCorner'
                             })
                         })
-
+            
                         UpdateSectionSize()
-
+            
                         if #List == 0 then
                             DropdownSelectedText.Text = 'None'
                             SelectedItem = 'None'
                         end
-    
+            
                         local OptionButton = DropList[Item..'OptionButton']
-
+            
                         if not ImprovePerformance then
                             task.spawn(function()
                                 while task.wait() do
@@ -3533,17 +3527,17 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                                 end
                             end)
                         end
-
+            
                         OptionButton.MouseEnter:Connect(function()
                             Hovering = true
                             Utility:Tween(OptionButton, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.5)
                         end)
-        
+            
                         OptionButton.MouseLeave:Connect(function()
                             Utility:Tween(OptionButton, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.5)
                             Hovering = false
                         end)
-    
+            
                         Utility:BindClick(OptionButton, function()
                             for _, Button in next, DropList:GetChildren() do
                                 if Button:IsA('TextButton') then
@@ -3556,9 +3550,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Config[Name] = Item
                             task.wait(0.5)
                             Opened = false
-                            Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                            Utility:Tween(DropdownHolder, {Size = UDim2.new(1, 0, 0, 40)}, 0.25)
                             Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
+                            ApplyDropdownSizing(true)
                             task.wait(0.25)
                             DropList.Visible = false
                         end)
