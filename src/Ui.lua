@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support dropdown ?
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3208,6 +3208,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     })
                 })
             
+                local DropdownHolder = Section[Name..'DropdownHolder']
+                AssignElementOrder(DropdownHolder)
+                local currentOrder = DropdownHolder.LayoutOrder
+            
                 Utility:Create('ScrollingFrame', {
                     Name = Name..'DropList',
                     Parent = Section,
@@ -3217,7 +3221,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Size = UDim2.new(1, 0, 0, 0),
                     Visible = false,
                     ScrollBarImageColor3 = Theme.ScrollBarColor,
-                    ScrollBarThickness = 3
+                    ScrollBarThickness = 3,
+                    LayoutOrder = currentOrder + 1,
+                    ZIndex = 100
                 }, {
                     Utility:Create('UIStroke', {
                         Name = Name..'DropListStroke',
@@ -3236,15 +3242,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     })
                 })
             
-                local DropdownHolder = Section[Name..'DropdownHolder']
                 local DropList = Section[Name..'DropList']
                 local DropdownButton = DropdownHolder[Name..'DropdownButton']
                 local DropdownIcon = DropdownHolder[Name..'DropdownIcon']
                 local DropdownSelectedText = DropdownHolder[Name..'DropdownSelectedText']
                 local DropListLayout = DropList[Name..'DropListLayout']
             
-                AssignElementOrder(DropdownHolder)
-                AssignElementOrder(DropList)
+                NextElementOrder = currentOrder + 2
                 UpdateSectionSize()
             
                 Config[Name] = Default
@@ -3363,7 +3367,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         AutoButtonColor = false,
                         Text = Item,
                         TextXAlignment = Enum.TextXAlignment.Left,
-                        ZIndex = 2
+                        ZIndex = 101
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Item..'OptionButtonPadding',
@@ -3481,7 +3485,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             AutoButtonColor = false,
                             Text = Item,
                             TextXAlignment = Enum.TextXAlignment.Left,
-                            ZIndex = 2
+                            ZIndex = 101
                         }, {
                             Utility:Create('UIPadding', {
                                 Name = Item..'OptionButtonPadding',
@@ -3548,7 +3552,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 end
                 return DropdownFunctions
             end
-            
 
             function Elements:CreateColorpicker(Name, DefaultColor, DebounceAmount, Callback, ...)
                 local Name = Name or 'Colorpicker'
