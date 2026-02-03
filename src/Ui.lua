@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support dropdown fixed ?
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3297,10 +3297,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                     local maxHeight
                     if IsMobileDevice then
-                        -- Keep dropdown usable on small screens (don't cover the whole tab).
-                        maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.55, 120, 220))
+                        -- Mobile: allow a taller dropdown (up to ~75% of the tab height),
+                        -- but clamp so it doesn't completely cover the screen.
+                        maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.75, 160, 260))
                     else
-                        maxHeight = 150
+                        -- Desktop: give more room as well so long lists (like players)
+                        -- are readable without enlarging the main UI.
+                        maxHeight = 230
                     end
 
                     local openHeight = math.min(contentY, maxHeight)
