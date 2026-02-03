@@ -225,7 +225,6 @@ local function IsMobile()
 end
 
 local function GetUIScale()
-    -- Légèrement plus grand sur mobile pour une meilleure lisibilité (GUI de base déjà agrandi)
     return IsMobile() and 0.8 or 1
 end
 
@@ -316,13 +315,9 @@ do
         end)
     end
 
-    -- Reliable "tap" handler for mobile (prevents accidental activation while scrolling).
-    -- On desktop, it uses MouseButton1Click; on mobile it triggers only if the finger
-    -- didn't move more than a small threshold before releasing.
     function Utility:BindClick(GuiObject, Callback)
         local Callback = Callback or function() end
 
-        -- Desktop click (avoid double-calls on touch devices).
         if GuiObject:IsA('GuiButton') and not UserInputService.TouchEnabled then
             GuiObject.MouseButton1Click:Connect(function()
                 task.spawn(function()
@@ -331,7 +326,6 @@ do
             end)
         end
 
-        -- Touch tap (movement threshold).
         GuiObject.InputBegan:Connect(function(Input)
             if Input.UserInputType ~= Enum.UserInputType.Touch then
                 return
@@ -340,8 +334,8 @@ do
             local startPos = Input.Position
             local startTime = os.clock()
             local moved = false
-            local moveThreshold = 14 -- pixels
-            local timeThreshold = 0.45 -- seconds
+            local moveThreshold = 14
+            local timeThreshold = 0.45
 
             local changedConn, endedConn
             changedConn = UserInputService.InputChanged:Connect(function(Changed)
@@ -1054,10 +1048,8 @@ function Utility:CreateMobileToggle()
             Thickness = 2
         })
     })
-        -- Rendre draggable
     Utility:EnableDragging(ToggleButton)
     
-    -- Fonction toggle
     ToggleButton.MouseButton1Click:Connect(function()
         Utility:ToggleUI()
         if CoreGui:FindFirstChild(UIName) then
@@ -1273,7 +1265,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
     local IsMobileDevice = IsMobile()
     local UIScaleValue = GetUIScale()
-    -- Taille de base du GUI : plus grande sur mobile pour éviter que tout soit trop serré
     local MainWidth = IsMobileDevice and 700 or 600
     local MainHeight = IsMobileDevice and 440 or 375
     local StartPos = IsMobileDevice and UDim2.new(0.5, 0, 0.5, 0) or UDim2.new(0, 595, 0, 150)
@@ -1336,13 +1327,11 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
         Parent = Main,
         Scale = UIScaleValue
     })
-
-    -- Mobile toggle button (only on mobile)
+    
     if IsMobileDevice then
         Utility:CreateMobileToggle()
     end
-
-    -- Disable dragging on mobile to avoid conflicts with touch
+    
     if not IsMobileDevice then
         Utility:EnableDragging(Container.Main)
     end
@@ -1814,7 +1803,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = Theme.BackgroundColor,
             BackgroundTransparency = 1,
-            -- Fill the tab container so it can adapt to mobile sizes.
             Size = UDim2.new(1, 0, 1, 0),
             BorderSizePixel = 0,
             ScrollBarImageColor3 = Theme.ScrollBarColor,
@@ -1930,7 +1918,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             TabButton.Parent[TabName..'ButtonImage'].ImageColor3 = Theme.SecondaryTextColor
         end
 
-        -- Use tap-safe handler on mobile to avoid switching tabs while scrolling.
         Utility:BindClick(TabButton, function()
             for _, ITab in next, TabFolder:GetChildren() do
                 ITab.Visible = false
@@ -1961,7 +1948,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 Parent = Tab,
                 BackgroundColor3 = Theme.BackgroundColor,
                 BorderSizePixel = 0,
-                -- Use full available width to prevent overflow on mobile.
                 Size = UDim2.new(1, 0, 0, 30),
                 LayoutOrder = NextSectionOrder,
             }, {
@@ -2026,13 +2012,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local ContentSize = ListLayout.AbsoluteContentSize
                 local ExtraBottom = IsMobileDevice and 10 or 6
 
-                -- IMPORTANT: set size immediately so sections never overlap while tweening.
-                -- (Overlapping happens when the next Section is laid out before this one finishes tweening.)
                 Section.Size = UDim2.new(1, 0, 0, ContentSize.Y + ExtraBottom)
             end
 
-            -- Keep Section height synced with its content reliably.
-            -- Using AbsoluteContentSize avoids creating RenderStepped/Changed connection spam.
             local ListLayout = Section[Name..'ListLayout']
             ListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
                 task.defer(UpdateSectionSize)
@@ -2134,7 +2116,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Name = Title..'ParagraphHolder',
                     Parent = Section,
                     BackgroundColor3 = Theme.PrimaryElementColor,
-                    -- Use full available width; height is calculated from wrapped text.
                     Size = UDim2.new(1, 0, 0, 37)
                 }, {
                     Utility:Create('UICorner', {
@@ -2206,7 +2187,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         wrapWidth = ParagraphHolder.AbsoluteSize.X
                     end
                     if wrapWidth <= 0 then
-                        wrapWidth = 410 -- fallback for first frame
+                        wrapWidth = 410
                     end
 
                     local textSize = TextService:GetTextSize(ParagraphContent.Text, 14, Enum.Font.Gotham, Vector2.new(wrapWidth, math.huge))
@@ -2215,7 +2196,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     UpdateSectionSize()
                 end
 
-                -- Wait one frame so AbsoluteSize is valid on mobile, then size correctly.
                 task.defer(RecalcParagraphHeight)
                 ParagraphContent:GetPropertyChangedSignal('Text'):Connect(RecalcParagraphHeight)
                 ParagraphHolder:GetPropertyChangedSignal('AbsoluteSize'):Connect(RecalcParagraphHeight)
@@ -2245,8 +2225,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Old = ParagraphContent.Text
                     ParagraphTitle.Text = NewTitle
                     ParagraphContent.Text = NewParagraph
-                    -- With responsive width on mobile, recompute based on actual wrap width.
-                    -- (Prevents the paragraph height being underestimated and overlapping the next element.)
                     task.defer(function()
                         local wrapWidth = ParagraphContent.AbsoluteSize.X
                         if wrapWidth <= 0 then
@@ -2549,7 +2527,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Callback(CurrentValue)
                     end)
                 else
-                    -- Ensure the UI is initialized even if DefaultValue is nil.
                     task.defer(function()
                         local minV = tonumber(MinimumValue) or 0
                         SetFromRatio(0, true)
@@ -3217,12 +3194,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 1, 5), -- 5px sous le holder
-                        Size = UDim2.new(1, 0, 0, 0), -- fermé au départ
+                        Position = UDim2.new(0, 0, 1, 5),
+                        Size = UDim2.new(1, 0, 0, 0),
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3,
-                        ZIndex = 100 -- ZIndex élevé par défaut pour être au-dessus des autres éléments
+                        ZIndex = 100
                     }, {
                         Utility:Create('UIStroke', {
                             Name = Name..'DropListStroke',
@@ -3272,7 +3249,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 Config[Name] = Default
 
                 local function GetDropdownOpenHeight()
-                    -- Wait one frame if layout hasn't updated yet (common on mobile when toggling Visible).
                     local contentY = DropListLayout.AbsoluteContentSize.Y
                     if contentY <= 0 then
                         return 0, 0
@@ -3280,12 +3256,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                     local maxHeight
                     if IsMobileDevice then
-                        -- Mobile: allow a taller dropdown (up to ~75% of the tab height),
-                        -- but clamp so it doesn't completely cover the screen.
                         maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.75, 160, 260))
                     else
-                        -- Desktop: give more room as well so long lists (like players)
-                        -- are readable without enlarging the main UI.
                         maxHeight = 230
                     end
 
@@ -3353,7 +3325,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Opened = not Opened
 
                     if Opened then
-                        -- ZIndex TRÈS élevé pour que le dropdown passe au-dessus de tous les éléments (surtout mobile)
                         DropdownHolder.ZIndex = 100
                         DropList.Visible = true
                         DropList.ZIndex = 101
@@ -3365,7 +3336,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         end)
                     else
                         DropdownHolder.ZIndex = 100
-                        DropList.ZIndex = 100 -- on garde un ZIndex élevé même fermé pour rester au-dessus des éléments passifs
+                        DropList.ZIndex = 100
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.delay(0.25, function()
@@ -3390,7 +3361,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         TextSize = 16,
                         AutoButtonColor = false,
                         Text = Item,
-                        TextXAlignment = Enum.TextXAlignment.Left
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        ZIndex = 101
                     }, {
                         Utility:Create('UIPadding', {
                             Name = Item..'OptionButtonPadding',
@@ -3443,7 +3415,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Config[Name] = Item
                         Opened = false
                         DropdownHolder.ZIndex = 1
-                        DropList.ZIndex = 100 -- garde un ZIndex élevé même après sélection
+                        DropList.ZIndex = 100
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.wait(0.25)
@@ -3510,7 +3482,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             TextSize = 16,
                             AutoButtonColor = false,
                             Text = Item,
-                            TextXAlignment = Enum.TextXAlignment.Left
+                            TextXAlignment = Enum.TextXAlignment.Left,
+                            ZIndex = 101
                         }, {
                             Utility:Create('UIPadding', {
                                 Name = Item..'OptionButtonPadding',
