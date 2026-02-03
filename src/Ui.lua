@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support
+-- // Rewrite by FRITE for mobile support  dropdown fixed
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3217,7 +3217,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 1, 0), -- ignored once reparented into Section's UIListLayout
+                        Position = UDim2.new(0, 0, 1, 5), -- 5px sous le holder, position absolue
                         Size = UDim2.new(1, 0, 0, 0), -- start closed
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
@@ -3257,13 +3257,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         })
                     })
                 })
-                Utility:Create('Frame', {
-                    Name = Name..'DropdownFiller',
-                    Parent = Section,
-                    Visible = false,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 0)
-                })
 
                 local DropdownHolder = Section[Name..'DropdownHolder']
                 local DropList = DropdownHolder[Name..'DropList']
@@ -3271,20 +3264,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local DropdownIcon = DropdownHolder[Name..'DropdownIcon']
                 local DropdownSelectedText = DropdownHolder[Name..'DropdownSelectedText']
                 local DropListLayout = DropList[Name..'DropListLayout']
-                local DropdownFiller = Section[Name..'DropdownFiller']
 
                 UpdateSectionSize()
                 AssignElementOrder(DropdownHolder)
-
-                -- IMPORTANT:
-                -- Reparent the dropdown list into the Section so that it becomes
-                -- a normal child of the Section's UIListLayout. This way, when
-                -- the list grows, it pushes *only* the elements that come after
-                -- it in the layout (toggles, buttons, other sections), while
-                -- everything above – including the dropdown header itself –
-                -- stays perfectly in place.
-                DropList.Parent = Section
-                AssignElementOrder(DropList)
 
                 Config[Name] = Default
 
@@ -3371,9 +3353,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
 
                     if Opened then
                         -- ZIndex élevé pour que le dropdown passe au-dessus des sections/toggles (surtout mobile)
-                        DropdownHolder.ZIndex = 10
+                        DropdownHolder.ZIndex = 20
                         DropList.Visible = true
-                        DropList.ZIndex = 11
+                        DropList.ZIndex = 21
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
 
                         -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
@@ -3587,12 +3569,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             Config[Name] = Item
                             task.wait(0.5)
                             Opened = false
-                            Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                             Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                             task.wait(0.25)
                             DropList.Visible = false
-                            DropdownFiller.Visible = false
                         end)
                     end
                 end
