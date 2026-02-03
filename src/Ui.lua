@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support  dropdown fixed
+-- // Rewrite by FRITE for mobile support
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3217,11 +3217,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Active = true,
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 0, 1, 5), -- 5px sous le holder, position absolue
-                        Size = UDim2.new(1, 0, 0, 0), -- start closed
+                        Position = UDim2.new(0, 0, 1, 5), -- 5px sous le holder
+                        Size = UDim2.new(1, 0, 0, 0), -- fermé au départ
                         Visible = false,
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
-                        ScrollBarThickness = 3
+                        ScrollBarThickness = 3,
+                        ZIndex = 100 -- ZIndex élevé par défaut pour être au-dessus des autres éléments
                     }, {
                         Utility:Create('UIStroke', {
                             Name = Name..'DropListStroke',
@@ -3352,10 +3353,10 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     Opened = not Opened
 
                     if Opened then
-                        -- ZIndex élevé pour que le dropdown passe au-dessus des sections/toggles (surtout mobile)
-                        DropdownHolder.ZIndex = 20
+                        -- ZIndex TRÈS élevé pour que le dropdown passe au-dessus de tous les éléments (surtout mobile)
+                        DropdownHolder.ZIndex = 100
                         DropList.Visible = true
-                        DropList.ZIndex = 21
+                        DropList.ZIndex = 101
                         Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
 
                         -- Give UIListLayout one frame to compute AbsoluteContentSize (mobile reliability).
@@ -3363,8 +3364,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             ApplyDropdownSizing(true)
                         end)
                     else
-                        DropdownHolder.ZIndex = 1
-                        DropList.ZIndex = 1
+                        DropdownHolder.ZIndex = 100
+                        DropList.ZIndex = 100 -- on garde un ZIndex élevé même fermé pour rester au-dessus des éléments passifs
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.delay(0.25, function()
@@ -3442,7 +3443,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         Config[Name] = Item
                         Opened = false
                         DropdownHolder.ZIndex = 1
-                        DropList.ZIndex = 1
+                        DropList.ZIndex = 100 -- garde un ZIndex élevé même après sélection
                         Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
                         Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
                         task.wait(0.25)
