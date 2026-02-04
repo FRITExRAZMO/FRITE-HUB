@@ -3283,13 +3283,11 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             
                 local function StartAutoCloseTimer()
                     CancelAutoClose()
-                    if not InteractingWithDropdown then
-                        AutoCloseTimer = task.delay(4, function()
-                            if Opened and not InteractingWithDropdown then
-                                CloseDropdown()
-                            end
-                        end)
-                    end
+                    AutoCloseTimer = task.delay(4, function()
+                        if Opened then
+                            CloseDropdown()
+                        end
+                    end)
                 end
             
                 local function GetDropdownOpenHeight()
@@ -3494,13 +3492,14 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
             
                     OptionButton.MouseLeave:Connect(function()
+                        InteractingWithDropdown = false
+                        if Opened then
+                            StartAutoCloseTimer()
+                        end
                         Utility:Tween(OptionButton, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                     end)
             
                     Utility:BindClick(OptionButton, function()
-                        CancelAutoClose()
-                        InteractingWithDropdown = false
-                        
                         for _, Button in next, DropList:GetChildren() do
                             if Button:IsA('TextButton') then
                                 Utility:Tween(Button, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
@@ -3517,7 +3516,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                             pcall(Callback, Item)
                         end)
                         
-                        CloseDropdown()
+                        task.spawn(function()
+                            CloseDropdown()
+                        end)
                     end)
                 end
             
@@ -3620,13 +3621,14 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         end)
             
                         OptionButton.MouseLeave:Connect(function()
+                            InteractingWithDropdown = false
+                            if Opened then
+                                StartAutoCloseTimer()
+                            end
                             Utility:Tween(OptionButton, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                         end)
             
                         Utility:BindClick(OptionButton, function()
-                            CancelAutoClose()
-                            InteractingWithDropdown = false
-                            
                             for _, Button in next, DropList:GetChildren() do
                                 if Button:IsA('TextButton') then
                                     Utility:Tween(Button, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
@@ -3642,7 +3644,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                                 pcall(Callback, Item)
                             end)
                             
-                            CloseDropdown()
+                            task.spawn(function()
+                                CloseDropdown()
+                            end)
                         end)
                     end
                     
