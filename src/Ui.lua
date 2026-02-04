@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support fixed dropdown test
+-- // Rewrite by FRITE for mobile support fixed dropdown
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
@@ -3117,6 +3117,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local DropdownFunctions = {}
                 local Hovering = false
                 local AutoCloseTimer = nil
+                local InteractingWithDropdown = false
                 
                 Utility:Create('Frame', {
                     Name = Name..'DropdownHolder',
@@ -3226,7 +3227,7 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         BackgroundColor3 = Theme.PrimaryElementColor,
                         BorderSizePixel = 0,
                         Position = UDim2.new(0, 0, 0, 45),
-                        Size = UDim2.new(0, 0, 0, 0),
+                        Size = UDim2.new(1, 0, 0, 0),
                         ScrollBarImageColor3 = Theme.ScrollBarColor,
                         ScrollBarThickness = 3,
                         ZIndex = 101,
@@ -3273,7 +3274,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             
                 Config[Name] = Default
             
-                -- Fonction pour annuler le timer d'auto-fermeture
                 local function CancelAutoClose()
                     if AutoCloseTimer then
                         task.cancel(AutoCloseTimer)
@@ -3281,14 +3281,15 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end
                 end
             
-                -- Fonction pour démarrer le timer d'auto-fermeture (3-4 secondes)
                 local function StartAutoCloseTimer()
                     CancelAutoClose()
-                    AutoCloseTimer = task.delay(3.5, function()
-                        if Opened then
-                            CloseDropdown()
-                        end
-                    end)
+                    if not InteractingWithDropdown then
+                        AutoCloseTimer = task.delay(4, function()
+                            if Opened and not InteractingWithDropdown then
+                                CloseDropdown()
+                            end
+                        end)
+                    end
                 end
             
                 local function GetDropdownOpenHeight()
@@ -3299,10 +3300,9 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             
                     local maxHeight
                     if IsMobile() then
-                        -- Meilleure hauteur pour mobile
-                        maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.6, 120, 200))
+                        maxHeight = math.floor(math.clamp(Tab.AbsoluteSize.Y * 0.5, 100, 180))
                     else
-                        maxHeight = 230
+                        maxHeight = 200
                     end
             
                     local openHeight = math.min(contentY, maxHeight)
@@ -3312,7 +3312,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 local function ApplyDropdownSizing(UseTween)
                     local openHeight, contentY = GetDropdownOpenHeight()
                     
-                    -- Si pas de contenu, fermer le dropdown
                     if contentY <= 0 then
                         if Opened then
                             CloseDropdown()
@@ -3328,8 +3327,8 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
             
                     local sizeProps = {Size = UDim2.new(1, 0, 0, openHeight)}
                     if UseTween then
-                        Utility:Tween(DropList, sizeProps, 0.25)
-                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, openHeight + 10)}, 0.25)
+                        Utility:Tween(DropList, sizeProps, 0.2)
+                        Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, openHeight + 10)}, 0.2)
                     else
                         DropList.Size = sizeProps.Size
                         DropdownFiller.Size = UDim2.new(1, 0, 0, openHeight + 10)
@@ -3338,21 +3337,21 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     task.defer(UpdateSectionSize)
                 end
             
-                -- Fonction pour fermer le dropdown
                 function CloseDropdown()
                     if not Opened then return end
                     
-                    CancelAutoClose() -- Annuler le timer
+                    CancelAutoClose()
+                    InteractingWithDropdown = false
                     Opened = false
                     DropdownHolder.ZIndex = 1
                     DropListContainer.ZIndex = 1
                     DropdownFiller.ZIndex = 1
                     
-                    Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                    Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.25)
-                    Utility:Tween(DropdownIcon, {Rotation = 270}, 0.25)
+                    Utility:Tween(DropList, {Size = UDim2.new(1, 0, 0, 0)}, 0.2)
+                    Utility:Tween(DropdownFiller, {Size = UDim2.new(1, 0, 0, 0)}, 0.2)
+                    Utility:Tween(DropdownIcon, {Rotation = 270}, 0.2)
                     
-                    task.wait(0.25)
+                    task.wait(0.2)
                     DropListContainer.Visible = false
                     DropdownFiller.Visible = false
                     UpdateSectionSize()
@@ -3397,27 +3396,33 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end
             
                     Debounce = true
+                    
+                    if #List == 0 then
+                        if Notification then
+                            Notification:Notify({
+                                Title = "Empty Dropdown",
+                                Description = "No items available in " .. Name,
+                                Duration = 2
+                            })
+                        end
+                        Debounce = false
+                        return
+                    end
+                    
                     Opened = not Opened
             
                     if Opened then
-                        -- Vérifier si la liste est vide
-                        if #List == 0 then
-                            Debounce = false
-                            return
-                        end
-                        
                         DropdownHolder.ZIndex = 100
                         DropListContainer.ZIndex = 100
                         DropdownFiller.ZIndex = 99
                         DropListContainer.Visible = true
                         DropdownFiller.Visible = true
-                        Utility:Tween(DropdownIcon, {Rotation = 90}, 0.25)
+                        Utility:Tween(DropdownIcon, {Rotation = 90}, 0.2)
             
                         task.defer(function()
                             ApplyDropdownSizing(true)
                         end)
                         
-                        -- Démarrer le timer d'auto-fermeture
                         StartAutoCloseTimer()
                     else
                         CloseDropdown()
@@ -3428,13 +3433,13 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end)
                 end)
                 
-                -- Annuler le timer si la souris entre dans le dropdown
                 DropList.MouseEnter:Connect(function()
+                    InteractingWithDropdown = true
                     CancelAutoClose()
                 end)
                 
-                -- Redémarrer le timer si la souris sort du dropdown
                 DropList.MouseLeave:Connect(function()
+                    InteractingWithDropdown = false
                     if Opened then
                         StartAutoCloseTimer()
                     end
@@ -3483,42 +3488,35 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     end
             
                     OptionButton.MouseEnter:Connect(function()
-                        CancelAutoClose() -- Annuler le timer quand on survole un bouton
+                        InteractingWithDropdown = true
+                        CancelAutoClose()
                         Utility:Tween(OptionButton, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.25)
                     end)
             
                     OptionButton.MouseLeave:Connect(function()
-                        if Opened then
-                            StartAutoCloseTimer() -- Redémarrer le timer
-                        end
                         Utility:Tween(OptionButton, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                     end)
             
                     Utility:BindClick(OptionButton, function()
-                        CancelAutoClose() -- Annuler le timer lors de la sélection
+                        CancelAutoClose()
+                        InteractingWithDropdown = false
                         
-                        -- Réinitialiser tous les boutons
                         for _, Button in next, DropList:GetChildren() do
                             if Button:IsA('TextButton') then
                                 Utility:Tween(Button, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                             end
                         end
                         
-                        -- Highlighter le bouton sélectionné
                         Utility:Tween(OptionButton, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.25)
                         
-                        -- Définir la valeur
                         DropdownSelectedText.Text = Item
                         SelectedItem = Item
                         Config[Name] = Item
                         
-                        -- Exécuter le callback
                         task.spawn(function()
                             pcall(Callback, Item)
                         end)
                         
-                        -- Fermer le dropdown après sélection
-                        task.wait(0.15)
                         CloseDropdown()
                     end)
                 end
@@ -3559,14 +3557,12 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                 function DropdownFunctions:UpdateDropdown(NewList)
                     NewList = NewList or {}
                     
-                    -- Fermer le dropdown s'il est ouvert
                     if Opened then
                         CloseDropdown()
                     end
                     
                     task.wait(0.3)
                     
-                    -- Supprimer les anciennes options
                     for _, Item in next, DropList:GetChildren() do
                         if Item:IsA('TextButton') then
                             Item:Destroy()
@@ -3575,7 +3571,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                     
                     List = NewList
             
-                    -- Créer les nouvelles options
                     for _, Item in next, NewList do
                         Utility:Create('TextButton', {
                             Name = Item..'OptionButton',
@@ -3619,19 +3614,18 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                         end
             
                         OptionButton.MouseEnter:Connect(function()
+                            InteractingWithDropdown = true
                             CancelAutoClose()
                             Utility:Tween(OptionButton, {BackgroundColor3 = Utility:Lighten(Theme.PrimaryElementColor)}, 0.25)
                         end)
             
                         OptionButton.MouseLeave:Connect(function()
-                            if Opened then
-                                StartAutoCloseTimer()
-                            end
                             Utility:Tween(OptionButton, {BackgroundColor3 = Theme.PrimaryElementColor}, 0.25)
                         end)
             
                         Utility:BindClick(OptionButton, function()
                             CancelAutoClose()
+                            InteractingWithDropdown = false
                             
                             for _, Button in next, DropList:GetChildren() do
                                 if Button:IsA('TextButton') then
@@ -3648,7 +3642,6 @@ function Library:CreateWindow(HubName, GameName, IntroText, IntroIcon, ImprovePe
                                 pcall(Callback, Item)
                             end)
                             
-                            task.wait(0.15)
                             CloseDropdown()
                         end)
                     end
