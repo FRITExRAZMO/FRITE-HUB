@@ -1,4 +1,4 @@
--- // Rewrite by FRITE for mobile support fixed dropdown
+-- // Rewrite by FRITE for mobile support fixed dropdown 2
 -- // Services
 local CoreGui = game:GetService('CoreGui')
 local TweenService = game:GetService('TweenService')
